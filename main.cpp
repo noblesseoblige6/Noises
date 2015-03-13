@@ -1,5 +1,5 @@
 #include <bits/stdc++.h>
-#include "ValueNoise2D.h"
+#include "PerlinNoise1D.h"
 using namespace std;
 int main()
 {
@@ -25,24 +25,20 @@ int main()
     0, 0, 0, 0, /* [46] カラーインデックス数 */
     0, 0, 0, 0, /* [50] 重要なカラーインデックス数 */
   };
-  bmp = fopen("perlin.bmp", "wb");
-  ValueNoise2D perlin;
-  perlin.setRange(size, size);
-  perlin.setOcterve(8);
-  perlin.setPersistence(0.65);
-  perlin.setInterpType(LINEAR);
+ // bmp = fopen("perlin.bmp", "wb");
+  PerlinNoise1D perlin;
   perlin.generate();
-  for(int i = 0; i < size;i++){
-    for(int j = 0; j < size; j++){
-      int val = 256*((perlin.get(i*size+j)+1.0)/2.0);
-      bitmap[i*size+j] = 256*256*val + 256*val + val; 
-    }
-  }
-
-  fseek(bmp, 0L, SEEK_SET);
-  fwrite(bmpHeader, 1, 54, bmp);
-  fwrite(bitmap, 4, size*size, bmp);
-  fclose(bmp);
-  
+  perlin.printData();
+  // for(int i = 0; i < size;i++){
+  //   for(int j = 0; j < size; j++){
+  //     int val = 256*((perlin.get(i*size+j)+1.0)/2.0);
+  //     bitmap[i*size+j] = 256*256*val + 256*val + val; 
+  //   }
+  // }
+  //
+  // fseek(bmp, 0L, SEEK_SET);
+  // fwrite(bmpHeader, 1, 54, bmp);
+  // fwrite(bitmap, 4, size*size, bmp);
+  // fclose(bmp);
  return 0;
 }
