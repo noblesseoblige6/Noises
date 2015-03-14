@@ -27,6 +27,9 @@ int main()
   };
  // bmp = fopen("perlin.bmp", "wb");
   PerlinNoise1D perlin;
+  perlin.setInterpType(COSINE);
+  perlin.setInterval(25);
+  
   perlin.generate();
   perlin.printData();
   // for(int i = 0; i < size;i++){
