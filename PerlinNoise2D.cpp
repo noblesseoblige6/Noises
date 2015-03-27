@@ -9,7 +9,7 @@ using std::endl;
 PerlinNoise2D::PerlinNoise2D()
 {
   square = 64;
-  width = height = 256;
+  width = height = 128;
   interpType = LINEAR;
   noises.clear();
 }
@@ -38,27 +38,22 @@ double PerlinNoise2D::gradientAt(int x, int y)
 
   double gx = noise(x), gy = noise(y); 
   double n = norm(gx, gy);
-  gx /= n; gy /= n;
-  s = gx*dx1 + gy*dy1;
+  s = gx/n*dx1 + gy/n*dy1;
 
   gx = noise(x+1); 
   n = norm(gx, gy);
-  gx /= n; 
-  t = gx*dx2 + gy*dy1;
+  t = gx/n*dx2 + gy/n*dy1;
 
   gy = noise(y+1); 
   n = norm(gx, gy);
-  gy /= n;
-  v = gx*dx1 + gy*dy2;
+  v = gx/n*dx1 + gy/n*dy2;
 
   gx = noise(x); 
   n = norm(gx, gy); 
-  gx /= n;
-  u = gx*dx2 + gy*dy2;
+  u = gx/n*dx2 + gy/n*dy2;
 
   sx = sCurve(dx1);
   sy = sCurve(dy1);
-
   return interpolate(interpolate(s, t, sx), interpolate(u, v, sx), sy);
 }
 

@@ -5,8 +5,7 @@ int main()
 {
   FILE *bmp;
 
-  int size = 128;
-  int i;
+  int size = 128, i;
   unsigned int bitmap[size*size];
   unsigned char bmpHeader[54] = {
     'B', 'M', /* [ 0] ファイルタイプ */
@@ -26,23 +25,23 @@ int main()
     0, 0, 0, 0, /* [50] 重要なカラーインデックス数 */
   };
   bmp = fopen("perlin.bmp", "wb");
-  PerlinNoise1D perlin;
+  PerlinNoise2D perlin;
   perlin.setInterpType(COSINE);
-  perlin.setInterval(25);
+  // perlin.setInterval(25);
 
   perlin.generate();
-  perlin.printData();
-  // for(int i = 0; i < size;i++){
-  //   for(int j = 0; j < size; j++){
-  //     int val = 256*((perlin.get(i*size+j)+1.0)/2.0);
-  //     cout<<perlin.get(i*size+j)<<endl;
-  //     bitmap[i*size+j] = 256*256*val + 256*val + val; 
-  //   }
-  // }
-  //
-  // fseek(bmp, 0L, SEEK_SET);
-  // fwrite(bmpHeader, 1, 54, bmp);
-  // fwrite(bitmap, 4, size*size, bmp);
-  // fclose(bmp);
+  // perlin.printData();
+  for(int i = 0; i < size;i++){
+    for(int j = 0; j < size; j++){
+      int val = 256*((perlin.get(i*size+j)+1.0)/2.0);
+      // cout<<perlin.get(i*size+j)<<endl;
+      bitmap[i*size+j] = 256*256*val + 256*val + val; 
+    }
+  }
+  
+  fseek(bmp, 0L, SEEK_SET);
+  fwrite(bmpHeader, 1, 54, bmp);
+  fwrite(bitmap, 4, size*size, bmp);
+  fclose(bmp);
    return 0;
 }
