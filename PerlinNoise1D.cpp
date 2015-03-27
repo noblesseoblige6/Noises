@@ -60,11 +60,11 @@ double PerlinNoise1D::interpolate(double u, double v, double sx)
 
 double PerlinNoise1D::gradientAt(double x)
 {
-  int xInt = floor(x);
-  double  d1 = x - xInt , d2 = (xInt+1) - x;
+  double  d1 = (noise(x)+1.0)/2.0 , d2 = 1.0 - d1;
   double u, v;
-  u = noise(xInt) * d1;
-  v = noise(xInt+1) * d2;
+
+  u = noise(x) * d1;
+  v = noise(x+1) * d2;
   double sx = sCurve(d1);
   return interpolate(u, v, sx);
 }
@@ -77,7 +77,7 @@ void PerlinNoise1D::generate()
 {
   noises.clear();
   for(int i = 0; i < range; i++){
-    noises.push_back(gradientAt(i/(double)interval));
+    noises.push_back(gradientAt(i));
   }
 }
 
