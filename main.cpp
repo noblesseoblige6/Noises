@@ -1,11 +1,13 @@
 #include <bits/stdc++.h>
 #include "PerlinNoise2D.h"
+// #include "ValueNoise2D.h"
+
 using namespace std;
 int main()
 {
   FILE *bmp;
 
-  int size = 128, i;
+  int size = 128;
   unsigned int bitmap[size*size];
   unsigned char bmpHeader[54] = {
     'B', 'M', /* [ 0] ファイルタイプ */
@@ -26,11 +28,11 @@ int main()
   };
   bmp = fopen("perlin.bmp", "wb");
   PerlinNoise2D perlin;
-  perlin.setInterpType(COSINE);
-  // perlin.setInterval(25);
+  perlin.setRange(size, size);
 
+  perlin.setOcterve(8);
   perlin.generate();
-  // perlin.printData();
+  perlin.printData();
   for(int i = 0; i < size;i++){
     for(int j = 0; j < size; j++){
       int val = 256*((perlin.get(i*size+j)+1.0)/2.0);
@@ -38,10 +40,9 @@ int main()
       bitmap[i*size+j] = 256*256*val + 256*val + val; 
     }
   }
-  
   fseek(bmp, 0L, SEEK_SET);
   fwrite(bmpHeader, 1, 54, bmp);
   fwrite(bitmap, 4, size*size, bmp);
   fclose(bmp);
-   return 0;
+  return 0;
 }

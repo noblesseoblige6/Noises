@@ -10,11 +10,23 @@ using std::endl;
 PerlinNoise1D::PerlinNoise1D()
 {
   interval = 25; 
+  octarveNum = 8;
+  persistence = 0.65;
   range = 1024;
   interpType = LINEAR;
   noises.clear();
 }
 PerlinNoise1D::~PerlinNoise1D(){}
+void PerlinNoise1D::setOcterve(int val)
+{
+  octarveNum = val;
+}
+
+void PerlinNoise1D::setPersistence(double val)
+{
+  persistence = val;
+}
+
 void PerlinNoise1D::setRange(int val)
 {
   range = val;
@@ -52,27 +64,36 @@ double PerlinNoise1D::cosineInterpolate(double a, double b, double t)
   double f = (1.0-cos(t*M_PI))*0.5;
   return a*(1.0-f)+b*t;
 }
-double PerlinNoise1D::interpolate(double u, double v, double sx)
+
+double PerlinNoise1D::interpolate(double x)
 {
+  double d1 = x - (int)x, d2 = 1.0 - d1;
+  double sx = sCurve(d1);
+  double u, v;
+  u = noise((int)x) * d1;
+  v = noise((int)x+1) * d2;
+
   if(interpType == LINEAR){return linearInterpolate(u, v, sx);}
   if(interpType == COSINE){return cosineInterpolate(u, v, sx);}
 }
 
-double PerlinNoise1D::gradientAt(double x)
-{
-  double  d1 = (noise(x)+1.0)/2.0 , d2 = 1.0 - d1;
-  double u, v;
-
-  u = noise(x) * d1;
-  v = noise(x+1) * d2;
-  double sx = sCurve(d1);
-  return interpolate(u, v, sx);
+double PerlinNoise1D::gradientAt(double t){
+  double total = 0.0; 
+  double freq = 1.0, amp = 1.0;
+  for(int i = 0; i < octarveNum; i++){
+    total += interpolate(t/(double)range*freq) * amp;
+    freq *= 2.0;
+    amp *= persistence;
+  }
+  return total;
 }
+
 double PerlinNoise1D::get(int n)
 {
   if(n < 0 || n >= noises.size()){return 0.0;}
   return noises[n];
 }
+
 void PerlinNoise1D::generate()
 {
   noises.clear();
