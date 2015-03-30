@@ -13,11 +13,13 @@ class PerlinNoise1D
     
   protected:
     int interval;
+    int octarveNum;
+    double persistence;
     int interpType;
     std::vector<double> noises;
 
     double sCurve(double);
-    double interpolate(double, double, double);
+    double interpolate(double);
     double linearInterpolate(double, double, double);
     double cosineInterpolate(double, double, double);
     double noise(int);
@@ -27,6 +29,8 @@ class PerlinNoise1D
     PerlinNoise1D();
     ~PerlinNoise1D();
     void setRange(int);
+    void setOcterve(int);
+    void setPersistence(double);
     void setInterval(int);
     void setInterpType(INTERP_TYPE);
     double get(int); 

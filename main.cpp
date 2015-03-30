@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #include <bits/stdc++.h>
 #include "PerlinNoise1D.h"
 // #include "ValueNoise2D.h"

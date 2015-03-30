@@ -5,21 +5,17 @@
 using std::vector;
 using std::cout;
 using std::endl;
-
 PerlinNoise2D::PerlinNoise2D()
 {
   square = 64;
   width = height = 128;
+  octarveNum = 8;
+  persistence = 0.625;
   interpType = LINEAR;
   noises.clear();
 }
 
 PerlinNoise2D::~PerlinNoise2D(){}
-
-static double norm(double a, double b)
-{
-  return sqrt(a*a + b*b);
-}
 
 double PerlinNoise2D::noise2D(int x, int y)
 {
@@ -29,32 +25,52 @@ double PerlinNoise2D::noise2D(int x, int y)
   return  1.0 - ((double)nn / 1073741824.0);   
 }
 
-double PerlinNoise2D::gradientAt(int x, int y)
+double PerlinNoise2D::interpolate(double x, double y)
 {
-  double dx1 = (noise(x)+1)/2, dx2 = 1.0 - dx1;
-  double dy1 = (noise(y)+1)/2, dy2 = 1.0 - dy1;
-  double  s, t, u, v;
-  double sx, sy;
+  vec2 d1(x - (int)x, y - (int)y);
+  vec2 d2(x - (int)x+1, y - (int)y+1);
+  vec2 c(d1.x, d1.y), g, w; 
+  double s, t, u, v;
+  
+  g.x = noise((int)x); g.y = noise((int)y); 
+  g = g.normalized();
+  s = g.x*d1.x + g.y*d1.y;
+  
+  g.x = noise((int)x+1); g.y = noise((int)y); 
+  g = g.normalized(); 
+  t = g.x*d2.x + g.y*d1.y;
 
-  double gx = noise(x), gy = noise(y); 
-  double n = norm(gx, gy);
-  s = gx/n*dx1 + gy/n*dy1;
+  g.x = noise((int)x); g.y = noise((int)y+1); 
+  g = g.normalized();
+  u = g.x*d1.x + g.y*d2.y;
 
-  gx = noise(x+1); 
-  n = norm(gx, gy);
-  t = gx/n*dx2 + gy/n*dy1;
+  g.x = noise((int)x+1); g.y = noise((int)y+1); 
+  g = g.normalized();
+  v = g.x*d2.x + g.y*d2.y;
 
-  gy = noise(y+1); 
-  n = norm(gx, gy);
-  v = gx/n*dx1 + gy/n*dy2;
+  switch(interpType){
+    case LINEAR:
+      w.x = linearInterpolate(s, t, c.x); w.y = linearInterpolate(u, v, c.x);
+      return linearInterpolate(w.x, w.y, c.y);
+      break;
+    case COSINE:
+      w.x = cosineInterpolate(s, t, c.x); w.y = cosineInterpolate(u, v, c.x);
+      return cosineInterpolate(w.x, w.y, c.y);
+      break;
+    default:
+      break;
+  }
+}
 
-  gx = noise(x); 
-  n = norm(gx, gy); 
-  u = gx/n*dx2 + gy/n*dy2;
-
-  sx = sCurve(dx1);
-  sy = sCurve(dy1);
-  return interpolate(interpolate(s, t, sx), interpolate(u, v, sx), sy);
+double PerlinNoise2D::gradientAt(double x, double y){
+  double total = 0.0; 
+  double freq = 1.0, amp = 1.0;
+  for(int i = 0; i < octarveNum; i++){
+    total += interpolate(x/(double)width*freq, y/(double)height*freq) * amp;
+    freq *= 2.0;
+    amp *= persistence;
+  }
+  return total;
 }
 
 void PerlinNoise2D::setRange(int w, int h)
