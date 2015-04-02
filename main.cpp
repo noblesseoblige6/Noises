@@ -6,7 +6,6 @@ using namespace std;
 int main()
 {
   FILE *bmp;
-
   int size = 128;
   unsigned int bitmap[size*size];
   unsigned char bmpHeader[54] = {
@@ -30,11 +29,13 @@ int main()
   PerlinNoise2D perlin;
   perlin.setRange(size, size);
 
+  perlin.setOcterve(16);
   perlin.generate();
-  // perlin.printData();
+  //perlin.printData();
   for(int i = 0; i < size;i++){
     for(int j = 0; j < size; j++){
       int val = 256*((perlin.get(i*size+j)+1.0)/2.0);
+      cout<<perlin.get(i*size+j)<<endl;
       bitmap[i*size+j] = 256*256*val + 256*val + val; 
     }
   }
