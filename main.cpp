@@ -1,6 +1,5 @@
-<<<<<<< HEAD
 #include <bits/stdc++.h>
-#include "PerlinNoise1D.h"
+#include "PerlinNoise2D.h"
 // #include "ValueNoise2D.h"
 
 using namespace std;
@@ -28,17 +27,14 @@ int main()
     0, 0, 0, 0, /* [50] 重要なカラーインデックス数 */
   };
   bmp = fopen("perlin.bmp", "wb");
-  PerlinNoise1D perlin;
-  // perlin.setRange(size, size);
+  PerlinNoise2D perlin;
+  perlin.setRange(size, size);
 
-  // PerlinNoise1D perlin;
-  // perlin.setOcterve(8);
   perlin.generate();
-  perlin.printData();
+  // perlin.printData();
   for(int i = 0; i < size;i++){
     for(int j = 0; j < size; j++){
       int val = 256*((perlin.get(i*size+j)+1.0)/2.0);
-      // cout<<perlin.get(i*size+j)<<endl;
       bitmap[i*size+j] = 256*256*val + 256*val + val; 
     }
   }

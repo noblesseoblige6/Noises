@@ -81,7 +81,7 @@ double PerlinNoise1D::gradientAt(double t){
   double total = 0.0; 
   double freq = 1.0, amp = 1.0;
   for(int i = 0; i < octarveNum; i++){
-    total += interpolate(t/(double)range*freq) * amp;
+    total += interpolate(t/range*freq) * amp;
     freq *= 2.0;
     amp *= persistence;
   }
