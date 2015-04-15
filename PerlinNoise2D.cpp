@@ -18,6 +18,11 @@ PerlinNoise2D::PerlinNoise2D()
 
 PerlinNoise2D::~PerlinNoise2D(){}
 
+double dot(vec2 a, vec2 b)
+{
+  return a.x*b.x + a.y*b.y;
+}
+
 double PerlinNoise2D::noise2D(int x, int y)
 {
   int n = x + y * 57;
@@ -36,21 +41,21 @@ double PerlinNoise2D::interpolate(double x, double y)
 
   g.x = noise2D(x, y); g.y = noise2D(y, x); 
   g = g.normalized();
-  s = g.x*d1.x + g.y*d1.y;
+  s = dot(g, d1);
 
   g.x = noise2D(x+1, y); g.y = noise2D(y, x); 
   g = g.normalized(); 
-  t = g.x*d2.x + g.y*d1.y;
+  t = dot(g, d2);
 
   g.x = noise2D(x, y); g.y = noise2D(y+1, x); 
   g = g.normalized();
-  u = g.x*d1.x + g.y*d2.y;
+  u = dot(g, d3);
 
   g.x = noise2D(x+1, y); g.y = noise2D(y+1, x); 
   g = g.normalized();
-  v = g.x*d4.x + g.y*d4.y;
+  v = dot(g, d4);
 
-  //@comment Normalize the value of dot products
+  //@comment Take average to Normalize the value of dot products
    s = (s)/2; t = (t)/2; 
    u = (u)/2; v = (v)/2; 
   
