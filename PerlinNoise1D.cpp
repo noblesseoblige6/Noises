@@ -70,8 +70,8 @@ double PerlinNoise1D::interpolate(double x)
   double d1 = x - (int)x, d2 = 1.0 - d1;
   double sx = sCurve(d1);
   double u, v;
-  u = noise((int)x) * d1;
-  v = noise((int)x+1) * d2;
+  u = (noise((int)x)+1)/2 * d1;
+  v = (noise((int)x+1)+1)/2 * d2;
 
   if(interpType == LINEAR){return linearInterpolate(u, v, sx);}
   if(interpType == COSINE){return cosineInterpolate(u, v, sx);}
