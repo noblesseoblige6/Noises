@@ -30,9 +30,9 @@ int main()
   // ValueNoise2D perlin;
   PerlinNoise2D perlin;
   // PerlinNoise1D perlin;
-  // perlin.setRange(size, size);
-  perlin.setPersistence(0.65);
-  perlin.setOcterve(1);
+  perlin.setRange(size, size);
+  perlin.setPersistence(0.5);
+  perlin.setOcterve(8);
 
   perlin.generate();
   perlin.printData();

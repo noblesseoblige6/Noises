@@ -28,11 +28,12 @@ double PerlinNoise2D::noise2D(int x, int y)
 
 double PerlinNoise2D::interpolate(double x, double y)
 {
+  vec2 d1(x - (int)x, y - (int)y), d2((int)x+1 - x, y - (int)y);
   vec2 d3(x - (int)x, (int)y+1 - y), d4((int)x+1 - x, (int)y+1 - y);
   vec2 c(sCurve(d1.x), sCurve(d1.y));
   vec2 g, w; 
   double s, t, u, v;
-  
+
   g.x = noise2D(x, y); g.y = noise2D(y, x); 
   g = g.normalized();
   s = g.x*d1.x + g.y*d1.y;
@@ -48,16 +49,21 @@ double PerlinNoise2D::interpolate(double x, double y)
   g.x = noise2D(x+1, y); g.y = noise2D(y+1, x); 
   g = g.normalized();
   v = g.x*d4.x + g.y*d4.y;
+
   //@comment Normalize the value of dot products
-  s = (s+2)/4; t = (s+2)/4; 
-  u = (s+2)/4; v = (s+2)/4; 
+   s = (s)/2; t = (t)/2; 
+   u = (u)/2; v = (v)/2; 
+  
+
   switch(interpType){
     case LINEAR:
-      w.x = linearInterpolate(s, t, c.x); w.y = linearInterpolate(u, v, c.x);
+      w.x = linearInterpolate(s, t, c.x); 
+      w.y = linearInterpolate(u, v, c.x);
       return linearInterpolate(w.x, w.y, c.y);
       break;
     case COSINE:
-      w.x = cosineInterpolate(s, t, c.x); w.y = cosineInterpolate(u, v, c.x);
+      w.x = cosineInterpolate(s, t, c.x); 
+      w.y = cosineInterpolate(u, v, c.x);
       return cosineInterpolate(w.x, w.y, c.y);
       break;
     default:
@@ -96,7 +102,8 @@ void PerlinNoise2D::printData()
 {
   for(int i = 0; i < width; i++){
     for(int j = 0; j < height; j++){
-      cout<<i<<" "<<j<<" "<<noises[i*width+j]<<endl;
+      cout<<j<<" "<<noises[i*width+j]<<endl;
     }
+    cout<<endl;
   }
 }
