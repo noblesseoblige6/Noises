@@ -27,11 +27,15 @@ int main()
     0, 0, 0, 0, /* [50] 重要なカラーインデックス数 */
   };
   bmp = fopen("perlin.bmp", "wb");
+  // ValueNoise2D perlin;
   PerlinNoise2D perlin;
-  perlin.setRange(size, size);
+  // PerlinNoise1D perlin;
+  // perlin.setRange(size, size);
+  perlin.setPersistence(0.65);
+  perlin.setOcterve(1);
 
   perlin.generate();
-  // perlin.printData();
+  perlin.printData();
   for(int i = 0; i < size;i++){
     for(int j = 0; j < size; j++){
       int val = 256*((perlin.get(i*size+j)+1.0)/2.0);
