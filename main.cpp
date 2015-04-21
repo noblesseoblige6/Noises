@@ -32,10 +32,10 @@ int main()
   // PerlinNoise1D perlin;
   perlin.setRange(size, size);
   perlin.setPersistence(0.65);
-  perlin.setOcterve(8);
+  perlin.setOcterve(16);
 
   perlin.generate();
-  perlin.printData();
+  // perlin.printData();
   for(int i = 0; i < size;i++){
     for(int j = 0; j < size; j++){
       int val = 256*((perlin.get(i*size+j)+1.0)/2.0);

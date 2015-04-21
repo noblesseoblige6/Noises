@@ -33,32 +33,28 @@ double PerlinNoise2D::noise2D(int x, int y)
 
 double PerlinNoise2D::interpolate(double x, double y)
 {
-  vec2 d1(x - (int)x, y - (int)y), d2((int)x+1 - x, y - (int)y);
-  vec2 d3(x - (int)x, (int)y+1 - y), d4((int)x+1 - x, (int)y+1 - y);
+  double fracX = x - (int)x, fracY = y - (int)y;
+  vec2 d1(fracX, fracY), d2(fracX-1, fracY);
+  vec2 d3(fracX, fracY-1), d4(fracX-1, fracY-1);
+
+  vec2 g1(noise2D(x, y), noise2D(y, x)), g2(noise2D(x+1, y), noise2D(y, x));
+  vec2 g3(noise2D(x, y), noise2D(y+1, x)), g4(noise2D(x+1, y), noise2D(y+1, x));
   vec2 c(sCurve(d1.x), sCurve(d1.y));
-  vec2 g, w; 
+  vec2 w; 
   double s, t, u, v;
+  //@commnet normalize random vectors
+  g1 = g1.normalized(); g2 = g2.normalized();
+  g3 = g3.normalized(); g4 = g4.normalized();
 
-  g.x = noise2D(x, y); g.y = noise2D(y, x); 
-  g = g.normalized();
-  s = dot(g, d1);
-
-  g.x = noise2D(x+1, y); g.y = noise2D(y, x); 
-  g = g.normalized(); 
-  t = dot(g, d2);
-
-  g.x = noise2D(x, y); g.y = noise2D(y+1, x); 
-  g = g.normalized();
-  u = dot(g, d3);
-
-  g.x = noise2D(x+1, y); g.y = noise2D(y+1, x); 
-  g = g.normalized();
-  v = dot(g, d4);
+  s = dot(g1, d1);
+  t = dot(g2, d2);
+  u = dot(g3, d3);
+  v = dot(g4, d4);
 
   //@comment Take average to Normalize the value of dot products
-   s = (s)/2; t = (t)/2; 
-   u = (u)/2; v = (v)/2; 
-  
+  s *= 0.5; t *= 0.5; 
+  u *= 0.5; v *= 0.5; 
+
 
   switch(interpType){
     case LINEAR:
@@ -78,9 +74,9 @@ double PerlinNoise2D::interpolate(double x, double y)
 
 double PerlinNoise2D::gradientAt(double x, double y){
   double total = 0.0; 
-  double freq = 1.0, amp = 1.0;
+  double freq = 1.0/height, amp = 1.0;
   for(int i = 0; i < octarveNum; i++){
-    total += interpolate((x/(double)width)*freq, (y/(double)height)*freq)*amp;
+    total += interpolate((x)*freq, (y)*freq)*amp;
     freq *= 2.0;
     amp *= persistence;
   }
