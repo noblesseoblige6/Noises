@@ -1,5 +1,4 @@
 #include <bits/stdc++.h>
-#include "PerlinNoise2D.h"
 #include "ValueNoise2D.h"
 
 using namespace std;
@@ -26,8 +25,7 @@ int main()
     0, 0, 0, 0, /* [46] カラーインデックス数 */
     0, 0, 0, 0, /* [50] 重要なカラーインデックス数 */
   };
-  bmp = fopen("perlin.bmp", "wb");
-  // PerlinNoise2D perlin;
+  bmp = fopen("ValueNoise.bmp", "wb");
   ValueNoise2D perlin;
   perlin.setRange(size,size);
   perlin.setPersistence(0.65);
