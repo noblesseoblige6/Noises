@@ -11,13 +11,12 @@ ValueNoise2D::ValueNoise2D()
   octarveNum = 8;
   persistence = 0.65;
   width = height = 256;
-  interpType = LINEAR;
-  noises.clear();
+  pixelVal.clear();
 }
 
 ValueNoise2D::~ValueNoise2D(){}
 
-double ValueNoise2D::noise(int x, int y)
+double ValueNoise2D::random(int x, int y)
 {
   int n = x + y * 57;
   n = (n<<13)^n;
@@ -29,9 +28,9 @@ double ValueNoise2D::noise(int x, int y)
 double ValueNoise2D::smoothNoise(int x, int y)
 {
   double side, corner, center;
-  center = noise(x, y)/4;
-  side = (noise(x+1, y)+noise(x-1, y)+noise(x, y+1)+noise(x, y-1))/8;
-  corner = (noise(x+1, y+1)+noise(x-1, y+1)+noise(x+1, y-1)+noise(x-1, y-1))/16;
+  center = random(x, y)/4;
+  side = (random(x+1, y)+random(x-1, y)+random(x, y+1)+random(x, y-1))/8;
+  corner = (random(x+1, y+1)+random(x-1, y+1)+random(x+1, y-1)+random(x-1, y-1))/16;
   return side+corner+center;
 }
 
@@ -48,21 +47,7 @@ double ValueNoise2D::interpolate(double x, double y)
   v2 = smoothNoise(xInt+1, yInt);
   v3 = smoothNoise(xInt, yInt+1);
   v4 = smoothNoise(xInt+1, yInt+1);
-
-  switch(interpType){
-    case LINEAR:
-      w1 = linearInterpolate(v1, v2, xFract);
-      w2 = linearInterpolate(v3, v4, xFract);
-      return linearInterpolate(w1, w2, yFract);
-      break;
-    case COSINE:
-      w1 = cosineInterpolate(v1, v2, xFract);
-      w2 = cosineInterpolate(v3, v4, xFract);
-      return cosineInterpolate(w1, w2, yFract);
-      break;
-    default:
-      break;
-  }
+  return lerp(lerp(v1, v2, xFract), lerp(v3, v4, xFract), yFract);
 }
 
 double ValueNoise2D::noiseAt(double x, double y)
@@ -85,20 +70,10 @@ void ValueNoise2D::setRange(int w, int h)
 
 void ValueNoise2D::generate()
 {
-  noises.clear();
+  pixelVal.clear();
   for(int i = 0; i < width; i++){
     for(int j = 0; j < height; j++){
-      noises.push_back(noiseAt(i/(double)width, j/(double)height));
+      pixelVal.push_back(noiseAt(i/(double)width, j/(double)height));
     }
-  }
-}
-
-void ValueNoise2D::printData()
-{
-  for(int i = 0; i < width; i++){
-    for(int j = 0; j < height; j++){
-      cout<<j<<" "<<noises[i*width+j]<<endl;
-    }
-    cout<<endl;
   }
 }
