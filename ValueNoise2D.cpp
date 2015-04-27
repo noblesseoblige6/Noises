@@ -97,7 +97,8 @@ void ValueNoise2D::printData()
 {
   for(int i = 0; i < width; i++){
     for(int j = 0; j < height; j++){
-      cout<<i<<" "<<j<<" "<<noises[i*width+j]<<endl;
+      cout<<j<<" "<<noises[i*width+j]<<endl;
     }
+    cout<<endl;
   }
 }
