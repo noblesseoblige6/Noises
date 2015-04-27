@@ -32,7 +32,7 @@ int main()
   // PerlinNoise1D perlin;
   perlin.setRange(size, size);
   perlin.setPersistence(0.65);
-  perlin.setOcterve(16);
+  perlin.setOcterve(8);
 
   perlin.generate();
   // perlin.printData();
