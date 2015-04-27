@@ -12,8 +12,8 @@ PerlinNoise2D::PerlinNoise2D()
   width = height = 256;
   octarveNum = 8; 
   persistence = 0.65;
-  interpType = LINEAR;
-  noises.clear();
+  pixelVal.clear();
+  permutations.clear();
   gradients.clear();
 }
 
@@ -22,14 +22,6 @@ PerlinNoise2D::~PerlinNoise2D(){}
 double dot(vec2& a, vec2& b)
 {
   return a.x*b.x + a.y*b.y;
-}
-
-double PerlinNoise2D::noise2D(int x, int y)
-{
-  int n = x + y * 57;
-  n = (n<<13)^n;
-  int nn = ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff);
-  return  1.0 - ((double)nn / 1073741824.0);   
 }
 
 double PerlinNoise2D::interpolate(double x, double y)
@@ -52,15 +44,15 @@ double PerlinNoise2D::interpolate(double x, double y)
   u = dot(gradients[grad21], d3);
   v = dot(gradients[grad22], d4);
 
-  //@comment Take average to Normalize the value of dot products
+  //@comment Take average to normalize the value of dot products
   // s *= 0.5; t *= 0.5; 
   // u *= 0.5; v *= 0.5; 
 
-  //@comment lerp alon x, then lerp along y
-  return linearInterpolate(linearInterpolate(s, t, c.x), linearInterpolate(u, v, c.x), c.y);
+  //@comment lerp along x, then lerp along y
+  return lerp(lerp(s, t, c.x), lerp(u, v, c.x), c.y);
 }
 
-double PerlinNoise2D::gradientAt(int x, int y)
+double PerlinNoise2D::noiseAt(int x, int y)
 {
   double total = 0.0; 
   double freq = 1.0/height, amp = 1.0;
@@ -83,27 +75,17 @@ void PerlinNoise2D::generate()
 {
   //@comment set random vector and normailize it
   for (int i=0; i<8; i++){
-    gradients.push_back(vec2(noise(i), noise(i+1)));
+    gradients.push_back(vec2(random(i), random(i+1)));
     gradients[i] = gradients[i].normalized();
   }
   //set up the random numbers table
   for(int i=0; i<256; i++){
-    permutations[i] = (int)(((noise(i)+1.0)/2.0)*255);
+    permutations.push_back((int)(((random(i)+1.0)/2.0)*255));
   }
-  noises.clear();
+  pixelVal.clear();
   for(int i = 0; i < width; i++){
     for(int j = 0; j < height; j++){
-      noises.push_back(gradientAt(i, j));
+      pixelVal.push_back(noiseAt(i, j));
     }
-  }
-}
-
-void PerlinNoise2D::printData()
-{
-  for(int i = 0; i < width; i++){
-    for(int j = 0; j < height; j++){
-      cout<<i<<" "<<j<<" "<<noises[i*width+j]<<endl;
-    }
-    cout<<endl;
   }
 }

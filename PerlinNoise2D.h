@@ -9,11 +9,10 @@ class PerlinNoise2D : public PerlinNoise1D
     int square;
     int width;
     int height;
-    int permutations[256];
+    std::vector<int> permutations;
     std::vector<vec2> gradients;
   protected:
-    double noise2D(int, int);
-    double gradientAt(int, int);
+    double noiseAt(int, int);
     double interpolate(double, double);
 
   public:
@@ -21,5 +20,4 @@ class PerlinNoise2D : public PerlinNoise1D
     ~PerlinNoise2D();
     void setRange(int, int);
     void generate();
-    void printData();
 };
