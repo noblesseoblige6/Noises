@@ -27,7 +27,7 @@ class PerlinNoise2D : public PerlinNoise1D
   protected:
     double noise2D(int, int);
     double gradientAt(double, double);
-    double interpolate(double, double);
+    double interpolate(double, double, int*, float gradients[][2]);
 
   public:
     PerlinNoise2D();
