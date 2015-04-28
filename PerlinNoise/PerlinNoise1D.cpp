@@ -49,22 +49,24 @@ double PerlinNoise1D::lerp(double a, double b, double t)
 
 double PerlinNoise1D::interpolate(double x)
 {
-  double d1 = x - (int)x, d2 = 1.0 - d1;
+  int xInt = (int)x;
+  double d1 = x - xInt, d2 = d1 -1.0;
   double sx = sCurve(d1);
   double u, v;
-  u = (random((int)x)+1)/2 * d1;
-  v = (random((int)x+1)+1)/2 * d2;
+
+  int grad1 = permutations[xInt & 255] & 7;
+  int grad2 = permutations[(xInt+1) & 255] & 7;
+  u = gradients[grad1] * d1;
+  v = gradients[grad2] * d2;
 
   return lerp(u, v, sx);
 }
 
 double PerlinNoise1D::noiseAt(double t){
   double total = 0.0; 
-  double freq = 1.0, amp = 1.0;
+  double freq = 1.0/range, amp = 1.0;
   for(int i = 0; i < octarveNum; i++){
-    // total += interpolate(t/(double)range*freq) * amp;
     total += interpolate(t*freq) * amp;
-
     freq *= 2.0;
     amp *= persistence;
   }
@@ -73,11 +75,20 @@ double PerlinNoise1D::noiseAt(double t){
 
 double PerlinNoise1D::get(int idx)
 {
-return pixelVal[idx];
+  if(idx < 0 || idx >= pixelVal.size()){return 0.0;}
+  return pixelVal[idx];
 }
 
 void PerlinNoise1D::generate()
 {
+  //@comment set random vector and normailize it
+  for (int i=0; i<8; i++){
+    gradients.push_back(random(i));
+  }
+  //set up the random numbers table
+  for(int i=0; i<256; i++){
+    permutations.push_back((int)(((random(i)+1.0)/2.0)*255));
+  }
   pixelVal.clear();
   for(int i = 0; i < range; i++){
     pixelVal.push_back(noiseAt(i));

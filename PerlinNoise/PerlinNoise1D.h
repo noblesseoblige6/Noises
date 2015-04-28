@@ -5,12 +5,12 @@ class PerlinNoise1D
 {
   private:
     int range;
-
+    std::vector<double> gradients;
   protected:
-    int interval;
     int octarveNum;
     double persistence;
     std::vector<double> pixelVal;
+    std::vector<int> permutations;
 
     double sCurve(double);
     double interpolate(double);
