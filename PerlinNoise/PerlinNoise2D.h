@@ -6,15 +6,12 @@
 class PerlinNoise2D : public PerlinNoise1D 
 {
   private:
-    int square;
     int width;
     int height;
-    std::vector<int> permutations;
     std::vector<vec2> gradients;
   protected:
     double noiseAt(int, int);
     double interpolate(double, double);
-
   public:
     PerlinNoise2D();
     ~PerlinNoise2D();
