@@ -56,7 +56,6 @@ double PerlinNoise2D::noiseAt(int x, int y)
 {
   double total = 0.0; 
   double freq = 1.0/height, amp = 1.0;
-
   for(int i = 0; i < octarveNum; i++){
     total += interpolate((double)x*freq, (double)y*freq)*amp;
     freq *= 2.0;
