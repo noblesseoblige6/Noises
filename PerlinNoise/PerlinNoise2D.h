@@ -17,4 +17,5 @@ class PerlinNoise2D : public PerlinNoise1D
     ~PerlinNoise2D();
     void setRange(int, int);
     void generate();
+    void generate(float);
 };

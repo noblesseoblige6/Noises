@@ -8,15 +8,15 @@ int main()
 {
   char file[256] = "PerlinNoise.bmp";
   int size = 512;
-  float persistences[] = {0.65, 0.65, 0.65};
-  float octerves[] = {8, 6, 4};
+  float octerve = 8;
+  float offsets[] = {15.0f, 10.0f, 21.0f};
   Image* colorImg = Create_Image(size, size);
   PerlinNoise2D perlin[RGB];
   for(int i = 0; i < RGB; i++){
     perlin[i].setRange(size, size);
-    perlin[i].setPersistence(persistences[i]);
-    perlin[i].setOcterve(octerves[i]);
-    perlin[i].generate();
+    perlin[i].setPersistence(0.65);
+    perlin[i].setOcterve(octerve);
+    perlin[i].generate(offsets[i]);
   }
   for(int i = 0; i < size;i++){
     for(int j = 0; j < size; j++){

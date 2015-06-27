@@ -88,3 +88,22 @@ void PerlinNoise2D::generate()
     }
   }
 }
+
+void PerlinNoise2D::generate(float offset)
+{
+  //@comment set random vector and normailize it
+  for (int i=0; i<8; i++){
+    gradients.push_back(vec2(random(i), random(i+1)));
+    gradients[i] = gradients[i].normalized();
+  }
+  //set up the random numbers table
+  for(int i=0; i<256; i++){
+    permutations.push_back((int)(((random(i)+1.0)/2.0)*255));
+  }
+  pixelVal.clear();
+  for(int i = 0; i < width; i++){
+    for(int j = 0; j < height; j++){
+      pixelVal.push_back(noiseAt(i*offset, j*offset));
+    }
+  }
+}
