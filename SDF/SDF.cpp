@@ -1,4 +1,5 @@
 #include "SDF.h"
+
 SDF::SDF()
 {
   width = -1;
@@ -85,7 +86,7 @@ void SDF::propagation(vector<vector<Grid> >& g)
     //@comment visit all pixel in i-th row.
     for(int j = width - 1; j >= 0; j--){
       Grid tmp = g[j][i];
-      tmp = compare(g, j, i, 1, 0);
+      tmp = min(tmp, compare(g, j, i, 1, 0));
       g[j][i] = tmp;
     }
   }
@@ -102,7 +103,7 @@ void SDF::propagation(vector<vector<Grid> >& g)
     //@comment visit all pixel in i-th row.
     for(int j = 0; j < width; j++){
       Grid tmp = g[j][i];
-      tmp = compare(g, j, i, -1, 0);
+      tmp = min(tmp, compare(g, j, i, -1, 0));
       g[j][i] = tmp;
     }
   }
@@ -116,7 +117,7 @@ void SDF::merge(vector<vector<Grid> >& g1, vector<vector<Grid> >& g2)
     for(int j = 0; j < width; j++){
       dis = (int)(sqrt(g1[j][i].distSq()) - sqrt(g2[j][i].distSq()));
       //@comment clamp the value from 0~255
-      dis = dis * 3 + 128;
+      // dis = dis * 3 + 128;
       if(dis < 0){dis = 0;}
       else if(dis > 255){dis = 255;}
       distFld[j][i] = dis;
