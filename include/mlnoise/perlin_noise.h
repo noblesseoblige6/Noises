@@ -43,15 +43,15 @@ namespace mlnoise
         ~PerlinNoise() = default;
 
     public:
-        void Generate(T x, T y, T z)
+        T Generate(T x, T y, T z)
         {
             auto X = (int)std::floor(x) & 255;
             auto Y = (int)std::floor(y) & 255;
             auto Z = (int)std::floor(z) & 255;
 
-            x -= Math.floor(x);                                // FIND RELATIVE X,Y,Z
-            y -= Math.floor(y);                                // OF POINT IN CUBE.
-            z -= Math.floor(z);
+            x -= std::floor(x);                                // FIND RELATIVE X,Y,Z
+            y -= std::floor(y);                                // OF POINT IN CUBE.
+            z -= std::floor(z);
 
             T u = fade(x);
             T v = fade(y);
@@ -86,14 +86,14 @@ namespace mlnoise
             return total;
         }
 
-        T Noise(T x, std::int32_t octarve, T persistence)
+        T Noise(T x, T y, std::int32_t octarve, T persistence)
         {
             T total = 0;
             T amp = 1;
 
             for (auto i = 0; i < octarve; i++)
             {
-                total += Generate(x, y, 0) * amp;
+                total += Generate(x, y, 0.34567) * amp;
                 x *= 2.0;
                 y *= 2.0;
                 amp *= persistence;

@@ -1,4 +1,7 @@
 #pragma once
+#include <array>
+#include <random>
+#include <functional>
 
 namespace mlnoise
 {

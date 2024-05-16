@@ -21,6 +21,9 @@
     <ClCompile Include="main.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="bitmap.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="doctest.h">
@@ -34,6 +37,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\include\mlnoise\perlin_noise.h">
       <Filter>ヘッダー ファイル\mlnoise</Filter>
+    </ClInclude>
+    <ClInclude Include="bitmap.h">
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
