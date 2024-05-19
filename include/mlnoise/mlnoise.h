@@ -24,4 +24,25 @@ namespace mlnoise
     {
         return  t * t * t * (t * (t * 6 - 15) + 10);
     }
+
+    template<class T>
+    static T remap_11(T x) noexcept
+    {
+        return  2 * x - 1;
+    }
+
+    template<class T>
+    static T max_amplitude(std::int32_t octarve, T persistence) noexcept
+    {
+        T res = 0;
+        T amp = 1;
+
+        for (auto i = 0; i < octarve; i++)
+        {
+            res += amp;
+            amp *= persistence;
+        }
+
+        return res;
+    }
 }
