@@ -4,7 +4,7 @@
 namespace mlnoise
 {
     template<class T>
-    class PerlinNoise
+    class PerlinNoise : public detail::BaseNoise<PerlinNoise, T>
     {
     private:
         static constexpr std::int32_t TableMaxSize = 256;
@@ -30,7 +30,7 @@ namespace mlnoise
         ~PerlinNoise() = default;
 
     public:
-        T Generate(T x, T y, T z)
+        T Noise(T x, T y, T z)
         {
             auto const xInt = static_cast<std::int32_t>(std::floor(x));
             auto const yInt = static_cast<std::int32_t>(std::floor(y));
@@ -71,47 +71,7 @@ namespace mlnoise
             return lerp(t1, t2, w);
         }
 
-
-        T Noise(T x, std::int32_t octarve, T persistence)
-        {
-            return Noise(x, 0, 0, octarve, persistence);
-        }
-
-        T Noise(T x, T y, std::int32_t octarve, T persistence)
-        {
-            return Noise(x, y, 0, octarve, persistence);
-        }
-
-        T Noise(T x, T y, T z, std::int32_t octarve, T persistence)
-        {
-            T total = 0;
-            T amp = 1;
-
-            for (auto i = 0; i < octarve; i++)
-            {
-                total += remap_01(Generate(x, y, z)) * amp;
-                x *= 2.0;
-                y *= 2.0;
-                z *= 2.0;
-                amp *= persistence;
-            }
-            return total;
-        }
-
-        T Noise_01(T x, T y, std::int32_t octarve, T persistence)
-        {
-            return Noise(x, y, octarve, persistence) / max_amplitude(octarve, persistence);
-        }
-
-        T Noise_11(T x, T y, std::int32_t octarve, T persistence)
-        {
-            return remap_11(Noise(x, y, octarve, persistence));
-        }
-
     private:
         std::array<std::uint32_t, TableMaxSize * 2> m_permutationTable;
     };
-
-    using PerlinNoisef = PerlinNoise<std::float_t>;
-    using PerlinNoised = PerlinNoise<std::double_t>;
 }

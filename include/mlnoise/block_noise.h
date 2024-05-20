@@ -4,7 +4,7 @@
 namespace mlnoise
 {
     template<class T>
-    class BlockNoise
+    class BlockNoise : public detail::BaseNoise<BlockNoise, T>
     {
     private:
         static constexpr std::int32_t TableMaxSize = 256;
@@ -21,7 +21,7 @@ namespace mlnoise
         ~BlockNoise() = default;
         
     public:
-        T Generate(T x, T y, T z)
+        T Noise(T x, T y, T z)
         {
             auto const xInt = static_cast<std::int32_t>(std::floor(x));
             auto const yInt = static_cast<std::int32_t>(std::floor(y));
@@ -34,67 +34,8 @@ namespace mlnoise
             return m_r[m_permutationTable[m_permutationTable[m_permutationTable[rx0] + ry0] + rz0]];
         }
 
-        T Noise(T x, std::int32_t octarve, T persistence)
-        {
-            return Noise(x, 0, 0, octarve, persistence);
-        }
-
-        T Noise(T x, T y, std::int32_t octarve, T persistence)
-        {
-            return Noise(x, y, 0, octarve, persistence);
-        }
-
-        T Noise(T x, T y, T z, std::int32_t octarve, T persistence)
-        {
-            T total = 0;
-            T amp = 1;
-
-            for (auto i = 0; i < octarve; i++)
-            {
-                total += Generate(x, y, z) * amp;
-                x *= 2.0;
-                y *= 2.0;
-                z *= 2.0;
-                amp *= persistence;
-            }
-            return total;
-        }
-
-        T Noise_01(T x, std::int32_t octarve, T persistence)
-        {
-            return Noise(x, 0, octarve, persistence) / max_amplitude(octarve, persistence);
-        }
-
-        T Noise_11(T x, std::int32_t octarve, T persistence)
-        {
-            return remap_11(Noise_01(x, 0, octarve, persistence));
-        }
-
-        T Noise_01(T x, T y, std::int32_t octarve, T persistence)
-        {
-            return Noise(x, y, octarve, persistence) / max_amplitude(octarve, persistence);
-        }
-
-        T Noise_11(T x, T y, std::int32_t octarve, T persistence)
-        {
-            return remap_11(Noise_01(x, y, octarve, persistence));
-        }
-
-        T Noise_01(T x, T y, T z, std::int32_t octarve, T persistence)
-        {
-            return Noise(x, y, z, octarve, persistence) / max_amplitude(octarve, persistence);
-        }
-
-        T Noise_11(T x, T y, T z, std::int32_t octarve, T persistence)
-        {
-            return remap_11(Noise_01(x, y, z, octarve, persistence));
-        }
-
     private:
         std::array<T, TableMaxSize> m_r;
         std::array<std::uint32_t, TableMaxSize * 2> m_permutationTable;
     };
-
-    using BlockNoisef = BlockNoise<std::float_t>;
-    using BlockNoised = BlockNoise<std::double_t>;
 }

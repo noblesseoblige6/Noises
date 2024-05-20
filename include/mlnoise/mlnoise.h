@@ -76,3 +76,71 @@ namespace mlnoise
         return res;
     }
 }
+
+namespace mlnoise::detail
+{
+    template<template<class> class Derived, typename T>
+    class BaseNoise
+    {
+    public:
+        BaseNoise() = default;
+        ~BaseNoise() = default;
+
+    public:
+        T Fractal(T x, std::int32_t octarve, T persistence)
+        {
+            return Fractal(x, 0, 0, octarve, persistence);
+        }
+
+        T Fractal(T x, T y, std::int32_t octarve, T persistence)
+        {
+            return Fractal(x, y, 0, octarve, persistence);
+        }
+
+        T Fractal(T x, T y, T z, std::int32_t octarve, T persistence)
+        {
+            T total = 0;
+            T amp = 1;
+
+            for (auto i = 0; i < octarve; i++)
+            {
+                total += static_cast<Derived<T>&>(*this).Noise(x, y, z) * amp;
+                x *= 2.0;
+                y *= 2.0;
+                z *= 2.0;
+                amp *= persistence;
+            }
+            return total;
+        }
+
+        T Fractal_01(T x, std::int32_t octarve, T persistence)
+        {
+            return remap_01(Fractal_11(x, 0, octarve, persistence));
+        }
+
+        T Fractal_11(T x, std::int32_t octarve, T persistence)
+        {
+            return Fractal(x, 0, octarve, persistence) / max_amplitude(octarve, persistence);
+        }
+
+        T Fractal_01(T x, T y, std::int32_t octarve, T persistence)
+        {
+            return remap_01(Fractal_11(x, y, octarve, persistence));
+        }
+
+        T Fractal_11(T x, T y, std::int32_t octarve, T persistence)
+        {
+            return Fractal(x, y, octarve, persistence) / max_amplitude(octarve, persistence);
+        }
+
+        T Fractal_01(T x, T y, T z, std::int32_t octarve, T persistence)
+        {
+            return remap_01(Fractal_11(x, y, z, octarve, persistence));
+        }
+
+        T Fractal_11(T x, T y, T z, std::int32_t octarve, T persistence)
+        {
+            return Fractal(x, y, z, octarve, persistence) / max_amplitude(octarve, persistence);
+        }
+    };
+}

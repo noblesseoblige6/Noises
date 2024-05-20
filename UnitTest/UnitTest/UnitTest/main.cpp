@@ -5,20 +5,20 @@
 #include "../../../include/mlnoise/value_noise.h"
 #include "../../../include/mlnoise/block_noise.h"
 
-template<class T>
-void Noise(const char* file, std::int32_t octarve, std::float_t freq, std::float_t amp)
+template<class Noise>
+void Output(const char* file, std::int32_t octarve, std::float_t freq, std::float_t amp)
 {
-    auto size = 512;
+    auto size = 256;
     Image* colorImg = Create_Image(size, size);
 
-    T noise;
+    Noise noise;
     for (auto i = 0; i < size; i++)
     {
         for (auto j = 0; j < size; j++)
         {
-            auto res = noise.Noise_01(i * freq, j * freq, octarve, amp);
-            unsigned char v = 255 * res;
+            auto res = noise.Fractal_01(i * freq, j * freq, octarve, amp);
 
+            unsigned char v = 255 * res;
             colorImg->data[i * size + j].r = v;
             colorImg->data[i * size + j].g = v;
             colorImg->data[i * size + j].b = v;
@@ -65,12 +65,12 @@ TEST_SUITE("Noise")
 {
     TEST_CASE("Lattice based noise")
     {
-        constexpr auto octarve = 4;
-        constexpr auto freq    = 1.0/128;
+        constexpr auto octarve = 1;
+        constexpr auto freq    = 1.0f/32;
         constexpr auto amp     = 0.5f;
 
-        Noise<mlnoise::BlockNoisef>("./image/block.bmp", octarve, freq, amp);
-        Noise<mlnoise::ValueNoisef>("./image/value.bmp", octarve, freq, amp);
-        Noise<mlnoise::PerlinNoisef>("./image/perlin.bmp", octarve, freq, amp);
+        Output<mlnoise::BlockNoise<std::float_t>>("./image/block.bmp", octarve, freq, amp);
+        Output<mlnoise::ValueNoise<std::float_t>>("./image/value.bmp", octarve, freq, amp);
+        Output<mlnoise::PerlinNoise<std::float_t>>("./image/perlin.bmp", octarve, freq, amp);
     }
 }
