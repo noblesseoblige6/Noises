@@ -6,25 +6,13 @@ namespace mlnoise
     template<class T>
     class PerlinNoise
     {
-    public:
-        static constexpr std::int32_t permutation[] = { 151,160,137,91,90,15,
-                                                        131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
-                                                        190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
-                                                        88,237,149,56,87,174,20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,
-                                                        77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,
-                                                        102,143,54, 65,25,63,161, 1,216,80,73,209,76,132,187,208, 89,18,169,200,196,
-                                                        135,130,116,188,159,86,164,100,109,198,173,186, 3,64,52,217,226,250,124,123,
-                                                        5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,
-                                                        223,183,170,213,119,248,152, 2,44,154,163, 70,221,153,101,155,167, 43,172,9,
-                                                        129,22,39,253, 19,98,108,110,79,113,224,232,178,185, 112,104,218,246,97,228,
-                                                        251,34,242,193,238,210,144,12,191,179,162,241, 81,51,145,235,249,14,239,107,
-                                                        49,192,214, 31,181,199,106,157,184, 84,204,176,115,121,50,45,127, 4,150,254,
-                                                        138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
-        };
+    private:
+        static constexpr std::int32_t TableMaxSize = 256;
+        static constexpr std::int32_t TableMask = TableMaxSize - 1;
 
-        static T grad(int hash, double x, double y, double z) noexcept
+        static T grad(std::int32_t hash, T x, T y, T z) noexcept
         {
-            int h = hash & 15;
+            auto h = hash & 15;
 
             T u = h < 8 ? x : y;
             T v = h < 4 ? y : h == 12 || h == 14 ? x : z;
@@ -33,73 +21,65 @@ namespace mlnoise
         }
 
     public:
-        PerlinNoise()
+        PerlinNoise(std::uint32_t seed = 1024)
         {
-            for (auto i = 0; i < 256; ++i)
-            {
-                p[i + 256] = p[i] = permutation[i];
-            }
+            std::mt19937 gen(seed);
+
+            m_permutationTable = permutation_table<TableMaxSize>(gen);
         }
         ~PerlinNoise() = default;
 
     public:
         T Generate(T x, T y, T z)
         {
-            auto X = (int)std::floor(x) & 255;
-            auto Y = (int)std::floor(y) & 255;
-            auto Z = (int)std::floor(z) & 255;
+            auto const xInt = static_cast<std::int32_t>(std::floor(x));
+            auto const yInt = static_cast<std::int32_t>(std::floor(y));
+            auto const zInt = static_cast<std::int32_t>(std::floor(z));
 
-            x -= std::floor(x);                                // FIND RELATIVE X,Y,Z
-            y -= std::floor(y);                                // OF POINT IN CUBE.
-            z -= std::floor(z);
+            x -= xInt;
+            y -= yInt;
+            z -= zInt;
 
-            T u = fade(x);
-            T v = fade(y);
-            T w = fade(z);
+            auto const u = fade(x);
+            auto const v = fade(y);
+            auto const w = fade(z);
 
-            auto A = p[X] + Y;
-            auto AA = p[A] + Z;
-            auto AB = p[A + 1] + Z;      // HASH COORDINATES OF
-            auto B = p[X + 1] + Y;
-            auto BA = p[B] + Z;
-            auto BB = p[B + 1] + Z;      // THE 8 CUBE CORNERS,
+            auto const rx0 = xInt & TableMask;
+            auto const rx1 = (xInt + 1) & TableMask;
+            auto const ry0 = yInt & TableMask;
+            auto const ry1 = (ry0 + 1) & TableMask;
+            auto const rz0 = zInt & TableMask;
+            auto const rz1 = (rz0 + 1) & TableMask;
 
-            auto tmp1 = lerp(v, lerp(u, grad(p[AA], x, y, z), grad(p[BA], x - 1, y, z)), lerp(u, grad(p[AB], x, y - 1, z), grad(p[BB], x - 1, y - 1, z)));
-            auto tmp2 = lerp(v, lerp(u, grad(p[AA + 1], x, y, z - 1), grad(p[BA + 1], x - 1, y, z - 1)), lerp(u, grad(p[AB + 1], x, y - 1, z - 1), grad(p[BB + 1], x - 1, y - 1, z - 1)));
+            auto const v000 = m_permutationTable[m_permutationTable[m_permutationTable[rx0] + ry0] + rz0];
+            auto const v001 = m_permutationTable[m_permutationTable[m_permutationTable[rx0] + ry0] + rz1];
+            auto const v010 = m_permutationTable[m_permutationTable[m_permutationTable[rx0] + ry1] + rz0];
+            auto const v011 = m_permutationTable[m_permutationTable[m_permutationTable[rx0] + ry1] + rz1];
+            auto const v100 = m_permutationTable[m_permutationTable[m_permutationTable[rx1] + ry0] + rz0];
+            auto const v101 = m_permutationTable[m_permutationTable[m_permutationTable[rx1] + ry0] + rz1];
+            auto const v110 = m_permutationTable[m_permutationTable[m_permutationTable[rx1] + ry1] + rz0];
+            auto const v111 = m_permutationTable[m_permutationTable[m_permutationTable[rx1] + ry1] + rz1];
 
-            return lerp(tmp1, tmp2, w);
+            auto s1 = lerp(grad(v000, x, y    , z    ), grad(v100, x - 1, y    , z    ), u);
+            auto s2 = lerp(grad(v010, x, y - 1, z    ), grad(v110, x - 1, y - 1, z    ), u);
+            auto s3 = lerp(grad(v001, x, y    , z - 1), grad(v101, x - 1, y    , z - 1), u);
+            auto s4 = lerp(grad(v011, x, y - 1, z - 1), grad(v111, x - 1, y - 1, z - 1), u);
+
+            auto t1 = lerp(s1, s2, v);
+            auto t2 = lerp(s3, s4, v);
+
+            return lerp(t1, t2, w);
         }
 
 
         T Noise(T x, std::int32_t octarve, T persistence)
         {
-            T total = 0;
-            T amp = 1;
-
-            for (auto i = 0; i < octarve; i++)
-            {
-                total += Generate(x, 0, 0) * amp;
-                x *= 2.0;
-                amp *= persistence;
-            }
-
-            return total;
+            return Noise(x, 0, 0, octarve, persistence);
         }
 
         T Noise(T x, T y, std::int32_t octarve, T persistence)
         {
-            T total = 0;
-            T amp = 1;
-
-            for (auto i = 0; i < octarve; i++)
-            {
-                total += Generate(x, y, 0.34567) * amp;
-                x *= 2.0;
-                y *= 2.0;
-                amp *= persistence;
-            }
-
-            return total;
+            return Noise(x, y, 0, octarve, persistence);
         }
 
         T Noise(T x, T y, T z, std::int32_t octarve, T persistence)
@@ -109,7 +89,7 @@ namespace mlnoise
 
             for (auto i = 0; i < octarve; i++)
             {
-                total += Generate(x, y, z) * amp;
+                total += remap_01(Generate(x, y, z)) * amp;
                 x *= 2.0;
                 y *= 2.0;
                 z *= 2.0;
@@ -118,7 +98,20 @@ namespace mlnoise
             return total;
         }
 
+        T Noise_01(T x, T y, std::int32_t octarve, T persistence)
+        {
+            return Noise(x, y, octarve, persistence) / max_amplitude(octarve, persistence);
+        }
+
+        T Noise_11(T x, T y, std::int32_t octarve, T persistence)
+        {
+            return remap_11(Noise(x, y, octarve, persistence));
+        }
+
     private:
-        std::int32_t p[512];
+        std::array<std::uint32_t, TableMaxSize * 2> m_permutationTable;
     };
+
+    using PerlinNoisef = PerlinNoise<std::float_t>;
+    using PerlinNoised = PerlinNoise<std::double_t>;
 }

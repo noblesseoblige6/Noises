@@ -131,6 +131,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\include\mlnoise\block_noise.h" />
     <ClInclude Include="..\..\..\include\mlnoise\mlnoise.h" />
     <ClInclude Include="..\..\..\include\mlnoise\perlin_noise.h" />
     <ClInclude Include="..\..\..\include\mlnoise\value_noise.h" />

@@ -41,5 +41,8 @@
     <ClInclude Include="bitmap.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\mlnoise\block_noise.h">
+      <Filter>ヘッダー ファイル\mlnoise</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
