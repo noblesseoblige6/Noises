@@ -52,7 +52,7 @@ namespace mlnoise
     {
         std::array<T, N> res;
 
-        auto rand = [dist = std::uniform_real_distribution<T>(0, 1), &gen](T& val) mutable
+        auto rand = [dist = std::uniform_real_distribution<T>(-1, 1), &gen](T& val) mutable
             {
                 val = dist(gen);
             };
