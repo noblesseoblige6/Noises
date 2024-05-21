@@ -18,10 +18,26 @@ void Output(const char* file, std::int32_t octarve, std::float_t freq, std::floa
         {
             auto res = noise.Fractal_01(i * freq, j * freq, octarve, amp);
 
+#if 1
             unsigned char v = 255 * res;
+
             colorImg->data[i * size + j].r = v;
             colorImg->data[i * size + j].g = v;
             colorImg->data[i * size + j].b = v;
+#else
+            if (res >= 0.5)
+            {
+                colorImg->data[i * size + j].r = (res - 0.5) * 2 * 255;
+                colorImg->data[i * size + j].g = 0;
+                colorImg->data[i * size + j].b = 0;
+            }
+            else
+            {
+                colorImg->data[i * size + j].r = 0;
+                colorImg->data[i * size + j].g = res * 2 * 255;
+                colorImg->data[i * size + j].b = 0;
+            }
+#endif
         }
     }
 
@@ -52,7 +68,7 @@ TEST_SUITE("Util")
         std::mt19937 gen(seed);
 
         constexpr auto N = 256;
-        auto table = mlnoise::permutation_table<N>(gen);
+        auto table = mlnoise::permutation_table<std::uint8_t, N>(gen);
 
         for (auto itr = table.begin(); itr < table.begin() + N; ++itr)
         {
