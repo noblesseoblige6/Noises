@@ -25,7 +25,7 @@ namespace mlnoise
         {
             std::mt19937 gen(seed);
 
-            m_permutationTable = permutation_table<TableMaxSize>(gen);
+            m_permutationTable = permutation_table<std::uint8_t, TableMaxSize>(gen);
         }
         ~PerlinNoise() = default;
 
@@ -72,6 +72,6 @@ namespace mlnoise
         }
 
     private:
-        std::array<std::uint32_t, TableMaxSize * 2> m_permutationTable;
+        std::array<std::uint8_t, TableMaxSize * 2> m_permutationTable;
     };
 }
