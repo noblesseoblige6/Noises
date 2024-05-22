@@ -44,5 +44,8 @@
     <ClInclude Include="..\..\..\include\mlnoise\BlockNoise.h">
       <Filter>ヘッダー ファイル\mlnoise</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\mlnoise\SimplexNoise.h">
+      <Filter>ヘッダー ファイル\mlnoise</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

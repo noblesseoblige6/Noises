@@ -5,11 +5,12 @@
 #include "../../../include/mlnoise/PerlinNoise.h"
 #include "../../../include/mlnoise/ValueNoise.h"
 #include "../../../include/mlnoise/BlockNoise.h"
+#include "../../../include/mlnoise/SimplexNoise.h"
 
 template<class Noise>
 void Output(const char* file, std::int32_t octarve, std::float_t freq, std::float_t amp)
 {
-    auto size = 256;
+    auto size = 512;
     Image* colorImg = Create_Image(size, size);
 
     Noise noise;
@@ -83,11 +84,12 @@ TEST_SUITE("Noise")
     TEST_CASE("Lattice based noise")
     {
         constexpr auto octarve = 1;
-        constexpr auto freq    = 1.0f/32;
+        constexpr auto freq    = 1.0f/128;
         constexpr auto amp     = 0.5f;
 
         Output<mlnoise::BlockNoise<std::float_t>>("./image/block.bmp", octarve, freq, amp);
         Output<mlnoise::ValueNoise<std::float_t>>("./image/value.bmp", octarve, freq, amp);
         Output<mlnoise::PerlinNoise<std::float_t>>("./image/perlin.bmp", octarve, freq, amp);
+        Output<mlnoise::SimplexNoise<std::float_t>>("./image/simplex.bmp", octarve, freq, amp);
     }
 }
