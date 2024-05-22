@@ -32,16 +32,16 @@
     <ClInclude Include="..\..\..\include\mlnoise\mlnoise.h">
       <Filter>ヘッダー ファイル\mlnoise</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\mlnoise\value_noise.h">
+    <ClInclude Include="..\..\..\include\mlnoise\ValueNoise.h">
       <Filter>ヘッダー ファイル\mlnoise</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\mlnoise\perlin_noise.h">
+    <ClInclude Include="..\..\..\include\mlnoise\PerlinNoise.h">
       <Filter>ヘッダー ファイル\mlnoise</Filter>
     </ClInclude>
     <ClInclude Include="bitmap.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\mlnoise\block_noise.h">
+    <ClInclude Include="..\..\..\include\mlnoise\BlockNoise.h">
       <Filter>ヘッダー ファイル\mlnoise</Filter>
     </ClInclude>
   </ItemGroup>

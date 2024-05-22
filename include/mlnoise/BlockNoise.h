@@ -4,19 +4,19 @@
 namespace mlnoise
 {
     template<class T>
-    class BlockNoise : public detail::BaseNoise<BlockNoise, T>
+    class BlockNoise : public detail::NoiseBase<BlockNoise, T>
     {
     private:
         static constexpr std::int32_t TableMaxSize = 256;
         static constexpr std::int32_t TableMask = TableMaxSize - 1;
 
     public:
-        BlockNoise(std::uint32_t seed = 1024)
+        BlockNoise(RandomSeedType seed = 1024)
         {
-            std::mt19937 gen(seed);
+            RandomEngineType gen(seed);
 
-            m_r = random_table<T, TableMaxSize>(gen);
-            m_permutationTable = permutation_table<std::uint8_t, TableMaxSize>(gen);
+            m_values = detail::RandomTable<T, TableMaxSize>(gen);
+            m_permutations = detail::PermutationTable<std::uint8_t, TableMaxSize>(gen);
         }
         ~BlockNoise() = default;
         
@@ -31,11 +31,11 @@ namespace mlnoise
             auto const ry0 = yInt & TableMask;
             auto const rz0 = zInt & TableMask;
 
-            return m_r[m_permutationTable[m_permutationTable[m_permutationTable[rx0] + ry0] + rz0]];
+            return m_values[m_permutations[m_permutations[m_permutations[rx0] + ry0] + rz0]];
         }
 
     private:
-        std::array<T, TableMaxSize> m_r;
-        std::array<std::uint8_t, TableMaxSize * 2> m_permutationTable;
+        std::array<T, TableMaxSize> m_values;
+        std::array<std::uint8_t, TableMaxSize * 2> m_permutations;
     };
 }

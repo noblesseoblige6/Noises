@@ -1,9 +1,10 @@
 ﻿#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 #include "bitmap.h"
-#include "../../../include/mlnoise/perlin_noise.h"
-#include "../../../include/mlnoise/value_noise.h"
-#include "../../../include/mlnoise/block_noise.h"
+
+#include "../../../include/mlnoise/PerlinNoise.h"
+#include "../../../include/mlnoise/ValueNoise.h"
+#include "../../../include/mlnoise/BlockNoise.h"
 
 template<class Noise>
 void Output(const char* file, std::int32_t octarve, std::float_t freq, std::float_t amp)
@@ -54,7 +55,7 @@ TEST_SUITE("Util")
         std::mt19937 gen(seed);
 
         constexpr auto N = 256;
-        auto table = mlnoise::random_table<std::float_t, N>(gen);
+        auto table = mlnoise::detail::RandomTable<std::float_t, N>(gen);
 
         for (auto itr = table.begin(); itr < table.begin() + N; ++itr)
         {
@@ -68,7 +69,7 @@ TEST_SUITE("Util")
         std::mt19937 gen(seed);
 
         constexpr auto N = 256;
-        auto table = mlnoise::permutation_table<std::uint8_t, N>(gen);
+        auto table = mlnoise::detail::PermutationTable<std::uint8_t, N>(gen);
 
         for (auto itr = table.begin(); itr < table.begin() + N; ++itr)
         {

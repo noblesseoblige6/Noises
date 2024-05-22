@@ -6,32 +6,38 @@
 
 namespace mlnoise
 {
+    using RandomSeedType = std::uint32_t;
+    using RandomEngineType = std::mt19937;
+}
+
+namespace mlnoise::detail
+{
     template<class T>
-    T lerp(T a, T b, T t) noexcept
+    T Lerp(T a, T b, T t) noexcept
     {
         return a + t * (b - a);
     }
 
     template<class T>
-    T fade(T t) noexcept
+    T Fade(T t) noexcept
     {
         return  t * t * t * (t * (t * 6 - 15) + 10);
     }
 
     template<class T>
-    T remap_01(T x) noexcept
+    T Remap_01(T x) noexcept
     {
         return x * 0.5 + 0.5;
     }
 
     template<class T>
-    T remap_11(T x) noexcept
+    T Remap_11(T x) noexcept
     {
         return  2 * x - 1;
     }
 
     template<class T>
-    T max_amplitude(std::int32_t octave, T persistence) noexcept
+    T MaxAmplitude(std::int32_t octave, T persistence) noexcept
     {
         T res = 0;
         T amp = 1;
@@ -46,7 +52,7 @@ namespace mlnoise
     }
 
     template<class T, std::size_t N, class Engine>
-    auto random_table(Engine& gen) noexcept
+    auto RandomTable(Engine& gen) noexcept
     {
         std::array<T, N> res;
 
@@ -61,7 +67,7 @@ namespace mlnoise
     }
 
     template<class T, std::size_t N, class Engine>
-    auto permutation_table(Engine& gen) noexcept
+    auto PermutationTable(Engine& gen) noexcept
     {
         std::array<T, N> tmp;
         std::iota(tmp.begin(), tmp.end(), 0);
@@ -78,11 +84,11 @@ namespace mlnoise
 namespace mlnoise::detail
 {
     template<template<class> class Derived, typename T>
-    class BaseNoise
+    class NoiseBase
     {
     public:
-        BaseNoise() = default;
-        ~BaseNoise() = default;
+        NoiseBase() = default;
+        ~NoiseBase() = default;
 
     public:
         T Fractal(T x, std::int32_t octave, T persistence)
@@ -113,32 +119,32 @@ namespace mlnoise::detail
 
         T Fractal_01(T x, std::int32_t octave, T persistence)
         {
-            return remap_01(Fractal_11(x, 0, octave, persistence));
+            return Remap_01(Fractal_11(x, 0, octave, persistence));
         }
 
         T Fractal_11(T x, std::int32_t octave, T persistence)
         {
-            return Fractal(x, 0, octave, persistence) / max_amplitude(octave, persistence);
+            return Fractal(x, 0, octave, persistence) / MaxAmplitude(octave, persistence);
         }
 
         T Fractal_01(T x, T y, std::int32_t octave, T persistence)
         {
-            return remap_01(Fractal_11(x, y, octave, persistence));
+            return Remap_01(Fractal_11(x, y, octave, persistence));
         }
 
         T Fractal_11(T x, T y, std::int32_t octave, T persistence)
         {
-            return Fractal(x, y, octave, persistence) / max_amplitude(octave, persistence);
+            return Fractal(x, y, octave, persistence) / MaxAmplitude(octave, persistence);
         }
 
         T Fractal_01(T x, T y, T z, std::int32_t octave, T persistence)
         {
-            return remap_01(Fractal_11(x, y, z, octave, persistence));
+            return Remap_01(Fractal_11(x, y, z, octave, persistence));
         }
 
         T Fractal_11(T x, T y, T z, std::int32_t octave, T persistence)
         {
-            return Fractal(x, y, z, octave, persistence) / max_amplitude(octave, persistence);
+            return Fractal(x, y, z, octave, persistence) / MaxAmplitude(octave, persistence);
         }
     };
 }
