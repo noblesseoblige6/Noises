@@ -137,7 +137,6 @@
     <ClInclude Include="..\..\..\include\mlnoise\SimplexNoise.h" />
     <ClInclude Include="..\..\..\include\mlnoise\ValueNoise.h" />
     <ClInclude Include="App.h" />
-    <ClInclude Include="bitmap.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
@@ -154,7 +153,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
-    <ClCompile Include="bitmap.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
@@ -168,10 +166,8 @@
     <ResourceCompile Include="NoiseTest.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="block.bmp" />
     <Image Include="NoiseTest.ico" />
     <Image Include="small.ico" />
-    <Image Include="test.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

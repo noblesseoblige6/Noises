@@ -4,10 +4,8 @@
 #include "imgui/imgui_impl_dx12.h"
 
 #include "../../../include/mlnoise/BlockNoise.h"
-#include "bitmap.h"
-#include "resource.h"
-
-
+#include "../../../include/mlnoise/PerlinNoise.h"
+#include "../../../include/mlnoise/BlockNoise.h"
 
 namespace app
 {
@@ -40,6 +38,23 @@ namespace app
 
     bool App::OnResize(std::uint32_t width, std::uint32_t height)
     {
+
+        if (pRenderTarget != NULL)
+        {
+            RECT rc;
+            GetClientRect(m_hWnd, &rc);
+
+            D2D1_SIZE_U size = D2D1::SizeU(rc.right, rc.bottom);
+
+            pRenderTarget->Resize(size);
+            //CalculateLayout();
+            InvalidateRect(m_hWnd, NULL, FALSE);
+
+            m_width = width;
+            m_height = height;
+            UpdateNoise();
+        }
+
         //WaitForLastSubmittedFrame();
         //CleanupRenderTarget();
         //HRESULT result = g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
@@ -51,62 +66,38 @@ namespace app
 
     void App::OnPaint()
     {
-        HDC hdc;
         PAINTSTRUCT ps;
-        hdc = BeginPaint(m_hWnd, &ps);
-        BitBlt(hdc, 0, 0, 512, 512, mhdc, 0, 0, SRCCOPY);
-        //StretchBlt(
-        //    hdc, 0, 0, 512, 512, mhdc,
-        //    0, 0, 48, 4, SRCCOPY
-        //);
+        BeginPaint(m_hWnd, &ps);
+
+        pRenderTarget->BeginDraw();
+
+        pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+
+        auto size = pBitmap->GetSize();
+        pRenderTarget->DrawBitmap(pBitmap, D2D1::RectF(0, 0, size.width, size.height));
+
+        auto hr = pRenderTarget->EndDraw();
         EndPaint(m_hWnd, &ps);
     }
 
     bool App::Init()
     {
-        mlnoise::BlockNoise<std::float_t> noise;
-
-        constexpr auto octarve = 1;
-        constexpr auto freq = 1.0f / 128;
-        constexpr auto amp = 0.5f;
-
-        auto size = 512;
-
-        Image* colorImg = Create_Image(size, size);
-        auto buff = new char[512*512];
-        for (auto i = 0; i < size; i++)
-        {
-            for (auto j = 0; j < size; j++)
-            {
-                auto res = noise.Fractal_01(i * freq, j * freq, octarve, amp);
-
-                unsigned char v = 255 * res;
-
-                colorImg->data[i * size + j].r = v;
-                colorImg->data[i * size + j].g = v;
-                colorImg->data[i * size + j].b = v;
-            }
-        }
-
-        hNoise = CreateBitmap(512, 512, 1, 24, colorImg->data);
-        //hNoise = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_BITMAP2));
-
-        BITMAP bp;
-        GetObject(hNoise, sizeof(BITMAP), &bp);
-        auto width = bp.bmWidth;
-        auto height = bp.bmHeight;
-
-        mhdc = CreateCompatibleDC(NULL);
-        SelectObject(mhdc, hNoise);
-
-        Free_Image(colorImg);
-
         //if (!CreateDeviceD3D(m_hWnd))
         //{
         //    CleanupDeviceD3D();
         //    return false;
         //}
         //m_pImgui = std::make_unique<Imgui>(m_hWnd, g_pd3dDevice, NUM_BACK_BUFFERS, g_pd3dSrvDescHeap);
+
+        RECT rc;
+        GetClientRect(m_hWnd, &rc);
+        m_width = rc.right - rc.left;
+        m_height = rc.bottom - rc.top;
+
+        if (InitDirect2D() == false)
+            return false;
+
+        UpdateNoise();
 
         m_isInit = true;
 
@@ -361,6 +352,74 @@ namespace app
         WaitForMultipleObjects(numWaitableObjects, waitableObjects, TRUE, INFINITE);
 
         return frameCtx;
+    }
+
+    bool App::InitDirect2D()
+    {
+        HRESULT hr = S_OK;
+        hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory);
+        if (FAILED(hr))
+            return false;
+
+        if (pRenderTarget == NULL)
+        {
+            RECT rc;
+            GetClientRect(m_hWnd, &rc);
+
+            D2D1_SIZE_U size = D2D1::SizeU(rc.right, rc.bottom);
+
+            hr = pFactory->CreateHwndRenderTarget(
+                D2D1::RenderTargetProperties(),
+                D2D1::HwndRenderTargetProperties(m_hWnd, size),
+                &pRenderTarget);
+
+            if (SUCCEEDED(hr))
+            {
+                const D2D1_COLOR_F color = D2D1::ColorF(1.0f, 1.0f, 0);
+                hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+            }
+        }
+        return SUCCEEDED(hr);
+    }
+
+    void App::UpdateNoise()
+    {
+        if (pRenderTarget == nullptr)
+            return;
+
+        mlnoise::PerlinNoise<std::float_t> noise;
+
+        constexpr auto octarve = 1;
+        constexpr auto freq = 1.0f / 128;
+        constexpr auto amp = 0.5f;
+
+        UINT8* pData = new UINT8[m_width * m_height * 4];
+        for (auto i = 0; i < m_width; i++)
+        {
+            for (auto j = 0; j < m_height; j++)
+            {
+                auto res = noise.Fractal_01(i * freq, j * freq, octarve, amp);
+
+                unsigned char v = 255 * res;
+
+                UINT8* pPixelData = pData + ((j * m_height) + i) * 4;
+                pPixelData[0] = v;
+                pPixelData[1] = v;
+                pPixelData[2] = v;
+                pPixelData[3] = 255;
+            }
+        }
+
+        auto prop = D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE));
+        auto hr = pRenderTarget->CreateBitmap
+        (
+            D2D1::SizeU(m_width, m_height),
+            pData,
+            m_width * 4,
+            prop,
+            &pBitmap);
+
+        delete[] pData;
     }
 
     Imgui::Imgui(HWND hWnd, ID3D12Device* pDevice, std::uint32_t buffeFrames, ID3D12DescriptorHeap* pDescHeap)

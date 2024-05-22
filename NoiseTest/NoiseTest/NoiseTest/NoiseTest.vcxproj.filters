@@ -78,9 +78,6 @@
     <ClInclude Include="..\..\..\include\mlnoise\BlockNoise.h">
       <Filter>ヘッダー ファイル\mlnoise</Filter>
     </ClInclude>
-    <ClInclude Include="bitmap.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="resource1.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -113,9 +110,6 @@
     <ClCompile Include="imgui\imgui_impl_win32.cpp">
       <Filter>ソース ファイル\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="bitmap.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NoiseTest.rc">
@@ -127,12 +121,6 @@
       <Filter>リソース ファイル</Filter>
     </Image>
     <Image Include="NoiseTest.ico">
-      <Filter>リソース ファイル</Filter>
-    </Image>
-    <Image Include="block.bmp">
-      <Filter>リソース ファイル</Filter>
-    </Image>
-    <Image Include="test.bmp">
       <Filter>リソース ファイル</Filter>
     </Image>
   </ItemGroup>

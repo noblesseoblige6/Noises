@@ -7,6 +7,9 @@
 #include <d3d12.h>
 #include <dxgi1_4.h>
 
+#include <d2d1.h>
+#pragma comment(lib, "d2d1")
+
 #define DX12_ENABLE_DEBUG_LAYER
 
 #ifdef DX12_ENABLE_DEBUG_LAYER
@@ -47,14 +50,17 @@ namespace app
         void WaitForLastSubmittedFrame();
         FrameContext* WaitForNextFrameResources();
 
+        bool InitDirect2D();
+        void UpdateNoise();
+
     private:
         HWND          m_hWnd;
         HINSTANCE     m_hInst;
 
-        bool m_isInit{false};
+        bool m_isInit{ false };
 
-        std::uint32_t m_width;
-        std::uint32_t m_height;
+        std::uint32_t m_width{1024};
+        std::uint32_t m_height{912};
 
         HBITMAP hNoise;
         HDC mhdc;
@@ -78,6 +84,11 @@ namespace app
         D3D12_CPU_DESCRIPTOR_HANDLE  g_mainRenderTargetDescriptor[NUM_BACK_BUFFERS] = {};
 
         std::unique_ptr<Imgui> m_pImgui{nullptr};
+
+        ID2D1Factory* pFactory{ nullptr };
+        ID2D1HwndRenderTarget* pRenderTarget{ nullptr };
+        ID2D1SolidColorBrush* pBrush{ nullptr };
+        ID2D1Bitmap* pBitmap;
     };
 
     class Imgui
