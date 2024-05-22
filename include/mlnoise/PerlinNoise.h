@@ -36,9 +36,13 @@ namespace mlnoise
             auto const yInt = static_cast<std::int32_t>(std::floor(y));
             auto const zInt = static_cast<std::int32_t>(std::floor(z));
 
-            auto const u = detail::Fade(x - xInt);
-            auto const v = detail::Fade(y - yInt);
-            auto const w = detail::Fade(z - zInt);
+            auto const xFract = x - xInt;
+            auto const yFract = y - yInt;
+            auto const zFract = z - zInt;
+
+            auto const u = detail::Fade(xFract);
+            auto const v = detail::Fade(yFract);
+            auto const w = detail::Fade(zFract);
 
             auto const rx0 = xInt & TableMask;
             auto const rx1 = (xInt + 1) & TableMask;
@@ -56,10 +60,10 @@ namespace mlnoise
             auto const v110 = m_permutations[m_permutations[m_permutations[rx1] + ry1] + rz0];
             auto const v111 = m_permutations[m_permutations[m_permutations[rx1] + ry1] + rz1];
 
-            auto const s1 = detail::Lerp(grad(v000, x, y    , z    ), grad(v100, x - 1, y    , z    ), u);
-            auto const s2 = detail::Lerp(grad(v010, x, y - 1, z    ), grad(v110, x - 1, y - 1, z    ), u);
-            auto const s3 = detail::Lerp(grad(v001, x, y    , z - 1), grad(v101, x - 1, y    , z - 1), u);
-            auto const s4 = detail::Lerp(grad(v011, x, y - 1, z - 1), grad(v111, x - 1, y - 1, z - 1), u);
+            auto const s1 = detail::Lerp(grad(v000, xFract, yFract    , zFract    ), grad(v100, xFract - 1, yFract    , zFract    ), u);
+            auto const s2 = detail::Lerp(grad(v010, xFract, yFract - 1, zFract    ), grad(v110, xFract - 1, yFract - 1, zFract    ), u);
+            auto const s3 = detail::Lerp(grad(v001, xFract, yFract    , zFract - 1), grad(v101, xFract - 1, yFract    , zFract - 1), u);
+            auto const s4 = detail::Lerp(grad(v011, xFract, yFract - 1, zFract - 1), grad(v111, xFract - 1, yFract - 1, zFract - 1), u);
 
             auto const t1 = detail::Lerp(s1, s2, v);
             auto const t2 = detail::Lerp(s3, s4, v);
