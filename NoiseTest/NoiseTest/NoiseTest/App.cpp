@@ -32,9 +32,6 @@ namespace app
         SafeRelease(&m_pRTForD2D);
         SafeRelease(&m_pBitmap);
 
-        //m_p3DContext->WaitForLastSubmittedFrame();
-
-        m_pImgui.reset();
         m_pImgui.reset();
     }
 
@@ -53,28 +50,10 @@ namespace app
 
     bool App::OnResize(std::uint32_t width, std::uint32_t height)
     {
-        if (m_pRTForD2D != nullptr)
-        {
-            RECT rc;
-            GetClientRect(m_hWnd, &rc);
+        m_width = width;
+        m_height = height;
 
-            D2D1_SIZE_U size = D2D1::SizeU(rc.right, rc.bottom);
-
-            //m_pRTForD2D->Resize(size);
-            InvalidateRect(m_hWnd, nullptr, false);
-
-            m_width = width;
-            m_height = height;
-            UpdateNoise();
-        }
-
-        if (m_p3DContext != nullptr)
-        {
-            //m_p3DContext->WaitForLastSubmittedFrame();
-            m_p3DContext->CleanupRenderTarget();
-            m_p3DContext->ResizeBuffer(width, height);
-            m_p3DContext->CreateRenderTarget();
-        }
+        m_isResized = true;
 
         return true;
     }
@@ -86,12 +65,12 @@ namespace app
 
         m_pRTForD2D->BeginDraw();
 
-        m_pRTForD2D->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+        m_pRTForD2D->Clear(D2D1::ColorF(D2D1::ColorF::Green));
 
         auto size = m_pBitmap->GetSize();
         m_pRTForD2D->DrawBitmap(m_pBitmap, D2D1::RectF(0, 0, size.width, size.height));
 
-        auto hr = m_pRTForD2D->EndDraw();
+        m_pRTForD2D->EndDraw();
         EndPaint(m_hWnd, &ps);
     }
 
@@ -99,6 +78,7 @@ namespace app
     {
         if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
             return true;
+        return false;
     }
 
     bool App::Init()
@@ -125,17 +105,52 @@ namespace app
 
     void App::Update()
     {
-        m_pImgui->Update();
+        //m_pImgui->Update();
+
+        if (m_isResized && !m_beginResize)
+        {
+            m_beginResize = true;
+            m_isResized = false;
+        }
+        else if(!m_isResized && m_beginResize)
+        {
+            std::cout << "Resize" << std::endl;
+
+            m_beginResize = false;
+            m_isResized = false;
+
+            if (m_p3DContext != nullptr)
+            {
+                m_p3DContext->CleanupRenderTarget();
+                m_p3DContext->ResizeBuffer(m_width, m_height);
+                m_p3DContext->CreateRenderTarget();
+            }
+
+            if (m_pRTForD2D != nullptr)
+            {
+                SafeRelease(&m_pRTForD2D);
+                m_pRTForD2D = m_p2DContext->CreateRT(m_hWnd, m_p3DContext->GetBackBuffer());
+
+                UpdateNoise();
+
+                // calling WM_PAINT(update the window)
+                InvalidateRect(m_hWnd, nullptr, false);
+            }
+        }
+        else
+        {
+            m_isResized = false;
+        }
     }
 
     void App::Render()
     {
-        m_pImgui->Render();
-        std::array<ID3D11RenderTargetView*, 1> ppRTVs = { { m_p3DContext->pRTV() } };
-        m_p3DContext->GetDeviceContext()->OMSetRenderTargets(1, ppRTVs.data(), nullptr);
-        const float clear_color_with_alpha[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        //m_pImgui->Render();
+        //std::array<ID3D11RenderTargetView*, 1> ppRTVs = { { m_p3DContext->pRTV() } };
+        //m_p3DContext->GetDeviceContext()->OMSetRenderTargets(1, ppRTVs.data(), nullptr);
+        //const float clear_color_with_alpha[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
         //m_p3DContext->GetDeviceContext()->ClearRenderTargetView(m_p3DContext->pRTV(), clear_color_with_alpha);
-        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+        //ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
     }
 
     void App::SwapFrame()
@@ -176,6 +191,7 @@ namespace app
         constexpr auto freq = 1.0f / 128;
         constexpr auto amp = 0.5f;
 
+        //FIXME: why is the ratio 1 to 1?
         auto const w = m_width;
         auto const h = m_width;
 
@@ -196,6 +212,7 @@ namespace app
             }
         }
 
+        SafeRelease(&m_pBitmap);
         m_pBitmap = m_p2DContext->CreateBMP(m_pRTForD2D, m_width, m_width, pData);
 
         delete[] pData;
@@ -227,11 +244,12 @@ namespace app
 
     void Imgui::Update()
     {
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(ImVec2(300, 250));
+
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(300, 250));
         {
             static int oct = 0;
             static int freq = 0;
@@ -348,9 +366,9 @@ namespace app
         //createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
         D3D_FEATURE_LEVEL featureLevel;
         const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
-        HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
+        HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &m_pSwapChain, &m_pd3dDevice, &featureLevel, &m_pd3dDeviceContext);
         if (res == DXGI_ERROR_UNSUPPORTED) // Try high-performance WARP software driver if hardware is not available.
-            res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
+            res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &m_pSwapChain, &m_pd3dDevice, &featureLevel, &m_pd3dDeviceContext);
         if (res != S_OK)
             return false;
 
@@ -360,91 +378,56 @@ namespace app
 
     bool D3DContext::ResizeBuffer(std::uint32_t w, std::uint32_t h)
     {
-        HRESULT res = g_pSwapChain->ResizeBuffers(0, w, h, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
+        HRESULT res = m_pSwapChain->ResizeBuffers(0, w, h, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
         return SUCCEEDED(res);
     }
 
     void D3DContext::WaitFence()
     {
-        g_pSwapChain->Present(0, 0);
-
-        //D3DContext::FrameContext* frameCtx = WaitForNextFrameResources();
-        //UINT backBufferIdx = g_pSwapChain->GetCurrentBackBufferIndex();
-        //frameCtx->CommandAllocator->Reset();
-
-        //D3D12_RESOURCE_BARRIER barrier = {};
-        //barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        //barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        //barrier.Transition.pResource = g_mainRenderTargetResource[backBufferIdx];
-        //barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        //barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-        //barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        //g_pd3dCommandList->Reset(frameCtx->CommandAllocator, nullptr);
-        //g_pd3dCommandList->ResourceBarrier(1, &barrier);
-
-        //// Render Dear ImGui graphics
-        //ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-        //const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
-        //g_pd3dCommandList->ClearRenderTargetView(g_mainRenderTargetDescriptor[backBufferIdx], clear_color_with_alpha, 0, nullptr);
-        //g_pd3dCommandList->OMSetRenderTargets(1, &g_mainRenderTargetDescriptor[backBufferIdx], FALSE, nullptr);
-        //g_pd3dCommandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
-        ////ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), g_pd3dCommandList);
-        //barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        //barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-        //g_pd3dCommandList->ResourceBarrier(1, &barrier);
-        //g_pd3dCommandList->Close();
-
-        //g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)&g_pd3dCommandList);
-
-        //g_pSwapChain->Present(1, 0); // Present with vsync
-        ////g_pSwapChain->Present(0, 0); // Present without vsync
-
-        //UINT64 fenceValue = g_fenceLastSignaledValue + 1;
-        //g_pd3dCommandQueue->Signal(g_fence, fenceValue);
-        //g_fenceLastSignaledValue = fenceValue;
-        //frameCtx->FenceValue = fenceValue;
+        m_pSwapChain->Present(0, 0);
     }
 
     IDXGISurface* D3DContext::GetBackBuffer()
     {
         IDXGISurface* pBackBuffer = nullptr;
-        g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
+        m_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
         return pBackBuffer;
     }
 
     ID3D11Device* D3DContext::GetDevice()
     {
-        return g_pd3dDevice;
+        return m_pd3dDevice;
     }
 
     ID3D11DeviceContext* D3DContext::GetDeviceContext()
     {
-        return g_pd3dDeviceContext;
+        return m_pd3dDeviceContext;
     }
 
     ID3D11RenderTargetView* D3DContext::pRTV()
     {
-        return g_mainRenderTargetView;
+        return m_pRTV;
     }
 
     void D3DContext::CreateRenderTarget()
     {
-        ID3D11Texture2D* pBackBuffer;
-        g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-        g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_mainRenderTargetView);
+        ID3D11Texture2D* pBackBuffer{nullptr};
+        m_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
+        m_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &m_pRTV);
         pBackBuffer->Release();
     }
 
     void D3DContext::CleanupRenderTarget()
     {
-        if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
+        SafeRelease(&m_pRTV);
     }
 
     void D3DContext::CleanupDeviceD3D()
     {
         CleanupRenderTarget();
-        if (g_pSwapChain) { g_pSwapChain->Release(); g_pSwapChain = nullptr; }
-        if (g_pd3dDeviceContext) { g_pd3dDeviceContext->Release(); g_pd3dDeviceContext = nullptr; }
-        if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = nullptr; }
+
+        SafeRelease(&m_pSwapChain);
+        SafeRelease(&m_pd3dDeviceContext);
+        SafeRelease(&m_pd3dDevice);
     }
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <memory>
 
 #include <wtypes.h>
@@ -50,6 +51,8 @@ namespace app
         HINSTANCE     m_hInst;
 
         bool m_isInit{ false };
+        bool m_isResized{ false };
+        bool m_beginResize{ false };
 
         std::uint32_t m_width{1024};
         std::uint32_t m_height{912};
@@ -103,7 +106,6 @@ namespace app
 
     public:
         bool Init(HWND hWnd);
-        //bool CreateDeviceD3D(HWND hWnd);
         void CleanupDeviceD3D();
         void CreateRenderTarget();
         void CleanupRenderTarget();
@@ -117,10 +119,9 @@ namespace app
         ID3D11RenderTargetView* pRTV();
 
     private:
-        ID3D11Device* g_pd3dDevice = nullptr;
-        ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
-        IDXGISwapChain* g_pSwapChain = nullptr;
-        UINT                     g_ResizeWidth = 0, g_ResizeHeight = 0;
-        ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
+        ID3D11Device*           m_pd3dDevice = nullptr;
+        ID3D11DeviceContext*    m_pd3dDeviceContext = nullptr;
+        IDXGISwapChain*         m_pSwapChain = nullptr;
+        ID3D11RenderTargetView* m_pRTV = nullptr;
     };
 }
