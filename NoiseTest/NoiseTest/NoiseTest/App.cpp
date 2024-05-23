@@ -233,19 +233,24 @@ namespace app
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImVec2(300, 250));
         {
+            static int oct = 0;
+            static int freq = 0;
+            static int i = 0;
             static float f = 0.0f;
             static int counter = 0;
 
             ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+            ImGui::Text("Noise");               // Display some text (you can use a format strings too)
 
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::Combo("Noise", &i, "Block\0Value\0Perlin\0\0");
 
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+            ImGui::SliderInt("Octave", &oct, 0, 16);
+            ImGui::SliderFloat("Freq", &f, 0.01f, 64.f);
+            ImGui::SliderFloat("Persistence", &f, 0.01f, 0.5f);
+
+            if (ImGui::Button("Generate"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
 
             //ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();
