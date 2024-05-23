@@ -84,7 +84,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_NOISETEST));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_NOISETEST);
+    wcex.lpszMenuName   = nullptr; // MAKEINTRESOURCEW(IDC_NOISETEST);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -132,7 +132,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     if (g_pApp != nullptr)
-        g_pApp->MessageProc(hWnd, message, wParam, lParam);
+        if (g_pApp->MessageProc(hWnd, message, wParam, lParam))
+            return true;
 
     switch (message)
     {
