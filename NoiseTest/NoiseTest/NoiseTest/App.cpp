@@ -1,11 +1,13 @@
 #include "App.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_win32.h"
-#include "imgui/imgui_impl_dx12.h"
+#include "imgui/imgui_impl_dx11.h"
 
 #include "../../../include/mlnoise/BlockNoise.h"
 #include "../../../include/mlnoise/PerlinNoise.h"
 #include "../../../include/mlnoise/BlockNoise.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace app
 {
@@ -30,7 +32,7 @@ namespace app
         SafeRelease(&m_pRTForD2D);
         SafeRelease(&m_pBitmap);
 
-        m_p3DContext->WaitForLastSubmittedFrame();
+        //m_p3DContext->WaitForLastSubmittedFrame();
 
         m_pImgui.reset();
         m_pImgui.reset();
@@ -68,7 +70,7 @@ namespace app
 
         if (m_p3DContext != nullptr)
         {
-            m_p3DContext->WaitForLastSubmittedFrame();
+            //m_p3DContext->WaitForLastSubmittedFrame();
             m_p3DContext->CleanupRenderTarget();
             m_p3DContext->ResizeBuffer(width, height);
             m_p3DContext->CreateRenderTarget();
@@ -79,18 +81,24 @@ namespace app
 
     void App::OnPaint()
     {
-        //PAINTSTRUCT ps;
-        //BeginPaint(m_hWnd, &ps);
+        PAINTSTRUCT ps;
+        BeginPaint(m_hWnd, &ps);
 
-        //m_pRTForD2D->BeginDraw();
+        m_pRTForD2D->BeginDraw();
 
-        //m_pRTForD2D->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+        m_pRTForD2D->Clear(D2D1::ColorF(D2D1::ColorF::Black));
 
-        //auto size = m_pBitmap->GetSize();
-        //m_pRTForD2D->DrawBitmap(m_pBitmap, D2D1::RectF(0, 0, size.width, size.height));
+        auto size = m_pBitmap->GetSize();
+        m_pRTForD2D->DrawBitmap(m_pBitmap, D2D1::RectF(0, 0, size.width, size.height));
 
-        //auto hr = m_pRTForD2D->EndDraw();
-        //EndPaint(m_hWnd, &ps);
+        auto hr = m_pRTForD2D->EndDraw();
+        EndPaint(m_hWnd, &ps);
+    }
+
+    bool App::MessageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+    {
+        if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+            return true;
     }
 
     bool App::Init()
@@ -103,10 +111,10 @@ namespace app
         if (InitD3D() == false)
             return false;
 
-        //m_pImgui = std::make_unique<Imgui>(m_hWnd, g_pd3dDevice, NUM_BACK_BUFFERS, g_pd3dSrvDescHeap);
-
         if (InitD2D() == false)
             return false;
+
+        m_pImgui = std::make_unique<Imgui>(m_hWnd, m_p3DContext->GetDevice(), 1, m_p3DContext->GetDeviceContext());
 
         UpdateNoise();
 
@@ -117,12 +125,17 @@ namespace app
 
     void App::Update()
     {
-        //m_pImgui->Update();
+        m_pImgui->Update();
     }
 
     void App::Render()
     {
-        //m_pImgui->Render();
+        m_pImgui->Render();
+        std::array<ID3D11RenderTargetView*, 1> ppRTVs = { { m_p3DContext->pRTV() } };
+        m_p3DContext->GetDeviceContext()->OMSetRenderTargets(1, ppRTVs.data(), nullptr);
+        const float clear_color_with_alpha[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        //m_p3DContext->GetDeviceContext()->ClearRenderTargetView(m_p3DContext->pRTV(), clear_color_with_alpha);
+        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
     }
 
     void App::SwapFrame()
@@ -136,9 +149,9 @@ namespace app
         if (m_p2DContext->Init(m_hWnd) == false)
             return false;
 
-       /* m_pRTForD2D = m_p2DContext->CreateRT(m_hWnd, m_p3DContext->GetBackBuffer());
+        m_pRTForD2D = m_p2DContext->CreateRT(m_hWnd, m_p3DContext->GetBackBuffer());
         if (m_pRTForD2D == nullptr)
-            return false;*/
+            return false;
 
         return true;
     }
@@ -188,7 +201,7 @@ namespace app
         delete[] pData;
     }
 
-    Imgui::Imgui(HWND hWnd, ID3D12Device* pDevice, std::uint32_t buffeFrames, ID3D12DescriptorHeap* pDescHeap)
+    Imgui::Imgui(HWND hWnd, ID3D11Device* pDevice, std::uint32_t buffeFrames, ID3D11DeviceContext* pContext)
     {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -202,42 +215,37 @@ namespace app
 
         // Setup Platform/Renderer backends
         ImGui_ImplWin32_Init(hWnd);
-        ImGui_ImplDX12_Init(pDevice, buffeFrames,
-            DXGI_FORMAT_R8G8B8A8_UNORM, pDescHeap,
-            pDescHeap->GetCPUDescriptorHandleForHeapStart(),
-            pDescHeap->GetGPUDescriptorHandleForHeapStart());
+        ImGui_ImplDX11_Init(pDevice, pContext);
     }
 
     Imgui::~Imgui()
     {
-        ImGui_ImplDX12_Shutdown();
+        ImGui_ImplDX11_Shutdown();
         ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
     }
 
     void Imgui::Update()
     {
-        ImGui_ImplDX12_NewFrame();
+        ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(ImVec2(300, 250));
         {
             static float f = 0.0f;
             static int counter = 0;
 
             ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 
-            //ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            //ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            //ImGui::Checkbox("Another Window", &show_another_window);
+            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
 
-            //ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            //ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
 
-            //if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-            //    counter++;
-            //ImGui::SameLine();
-            //ImGui::Text("counter = %d", counter);
+            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
 
             //ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();
@@ -277,15 +285,16 @@ namespace app
         /*HRESULT hr = m_pFactory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(),
                                                       D2D1::HwndRenderTargetProperties(hWnd, size),
                                                       &pRT);*/
+        FLOAT dpiX = 0.0f;
+        FLOAT dpiY = 0.0f;
+        //m_pFactory->GetDesktopDpi(&dpiX, &dpiY);
         float dpi = GetDpiForWindow(hWnd);
 
         D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
                 D2D1_RENDER_TARGET_TYPE_DEFAULT,
-                D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED));
+                D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED), dpi, dpi);
 
-        HRESULT hr = m_pFactory->CreateDxgiSurfaceRenderTarget(pBuffer,
-            props,
-            &pRT);
+        HRESULT hr = m_pFactory->CreateDxgiSurfaceRenderTarget(pBuffer, &props, &pRT);
 
         if (FAILED(hr))
             return nullptr;
@@ -314,134 +323,34 @@ namespace app
 
     bool D3DContext::Init(HWND hWnd)
     {
-        // Setup swap chain
-        DXGI_SWAP_CHAIN_DESC1 sd;
-        {
-            ZeroMemory(&sd, sizeof(sd));
-            sd.BufferCount = NUM_BACK_BUFFERS;
-            sd.Width = 0;
-            sd.Height = 0;
-            sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-            sd.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
-            sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-            sd.SampleDesc.Count = 1;
-            sd.SampleDesc.Quality = 0;
-            sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-            sd.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-            sd.Scaling = DXGI_SCALING_STRETCH;
-            sd.Stereo = FALSE;
-        }
+        DXGI_SWAP_CHAIN_DESC sd;
+        ZeroMemory(&sd, sizeof(sd));
+        sd.BufferCount = 1;
+        sd.BufferDesc.Width = 0;
+        sd.BufferDesc.Height = 0;
+        sd.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        sd.BufferDesc.RefreshRate.Numerator = 60;
+        sd.BufferDesc.RefreshRate.Denominator = 1;
+        sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        sd.OutputWindow = hWnd;
+        sd.SampleDesc.Count = 1;
+        sd.SampleDesc.Quality = 0;
+        sd.Windowed = TRUE;
+        //sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
-        // [DEBUG] Enable debug interface
-#ifdef DX12_ENABLE_DEBUG_LAYER
-        ID3D12Debug* pdx12Debug = nullptr;
-        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&pdx12Debug))))
-            pdx12Debug->EnableDebugLayer();
-#endif
-
-        // Create device
-        D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
-        if (D3D12CreateDevice(nullptr, featureLevel, IID_PPV_ARGS(&g_pd3dDevice)) != S_OK)
+        UINT createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+        //createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+        D3D_FEATURE_LEVEL featureLevel;
+        const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
+        HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
+        if (res == DXGI_ERROR_UNSUPPORTED) // Try high-performance WARP software driver if hardware is not available.
+            res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
+        if (res != S_OK)
             return false;
-
-        // [DEBUG] Setup debug interface to break on any warnings/errors
-#ifdef DX12_ENABLE_DEBUG_LAYER
-        if (pdx12Debug != nullptr)
-        {
-            ID3D12InfoQueue* pInfoQueue = nullptr;
-            g_pd3dDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue));
-            pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
-            pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
-            pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);
-            pInfoQueue->Release();
-            pdx12Debug->Release();
-        }
-#endif
-
-        {
-            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-            desc.NumDescriptors = NUM_BACK_BUFFERS;
-            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-            desc.NodeMask = 1;
-            if (g_pd3dDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&g_pd3dRtvDescHeap)) != S_OK)
-                return false;
-
-            SIZE_T rtvDescriptorSize = g_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = g_pd3dRtvDescHeap->GetCPUDescriptorHandleForHeapStart();
-            for (UINT i = 0; i < NUM_BACK_BUFFERS; i++)
-            {
-                g_mainRenderTargetDescriptor[i] = rtvHandle;
-                rtvHandle.ptr += rtvDescriptorSize;
-            }
-        }
-
-        {
-            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-            desc.NumDescriptors = 1;
-            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            if (g_pd3dDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&g_pd3dSrvDescHeap)) != S_OK)
-                return false;
-        }
-
-        {
-            D3D12_COMMAND_QUEUE_DESC desc = {};
-            desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-            desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-            desc.NodeMask = 1;
-            if (g_pd3dDevice->CreateCommandQueue(&desc, IID_PPV_ARGS(&g_pd3dCommandQueue)) != S_OK)
-                return false;
-        }
-
-        for (UINT i = 0; i < NUM_FRAMES_IN_FLIGHT; i++)
-            if (g_pd3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&g_frameContext[i].CommandAllocator)) != S_OK)
-                return false;
-
-        if (g_pd3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, g_frameContext[0].CommandAllocator, nullptr, IID_PPV_ARGS(&g_pd3dCommandList)) != S_OK ||
-            g_pd3dCommandList->Close() != S_OK)
-            return false;
-
-        if (g_pd3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&g_fence)) != S_OK)
-            return false;
-
-        g_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-        if (g_fenceEvent == nullptr)
-            return false;
-
-        {
-            IDXGIFactory4* dxgiFactory = nullptr;
-            IDXGISwapChain1* swapChain1 = nullptr;
-            if (CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)) != S_OK)
-                return false;
-            if (dxgiFactory->CreateSwapChainForHwnd(g_pd3dCommandQueue, hWnd, &sd, nullptr, nullptr, &swapChain1) != S_OK)
-                return false;
-            if (swapChain1->QueryInterface(IID_PPV_ARGS(&g_pSwapChain)) != S_OK)
-                return false;
-            swapChain1->Release();
-            dxgiFactory->Release();
-            g_pSwapChain->SetMaximumFrameLatency(NUM_BACK_BUFFERS);
-            g_hSwapChainWaitableObject = g_pSwapChain->GetFrameLatencyWaitableObject();
-        }
 
         CreateRenderTarget();
         return true;
-    }
-
-    void D3DContext::WaitForLastSubmittedFrame()
-    {
-        FrameContext* frameCtx = &g_frameContext[g_frameIndex % NUM_FRAMES_IN_FLIGHT];
-
-        UINT64 fenceValue = frameCtx->FenceValue;
-        if (fenceValue == 0)
-            return; // No fence was signaled
-
-        frameCtx->FenceValue = 0;
-        if (g_fence->GetCompletedValue() >= fenceValue)
-            return;
-
-        g_fence->SetEventOnCompletion(fenceValue, g_fenceEvent);
-        WaitForSingleObject(g_fenceEvent, INFINITE);
     }
 
     bool D3DContext::ResizeBuffer(std::uint32_t w, std::uint32_t h)
@@ -452,41 +361,43 @@ namespace app
 
     void D3DContext::WaitFence()
     {
-        D3DContext::FrameContext* frameCtx = WaitForNextFrameResources();
-        UINT backBufferIdx = g_pSwapChain->GetCurrentBackBufferIndex();
-        frameCtx->CommandAllocator->Reset();
+        g_pSwapChain->Present(0, 0);
 
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = g_mainRenderTargetResource[backBufferIdx];
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        g_pd3dCommandList->Reset(frameCtx->CommandAllocator, nullptr);
-        g_pd3dCommandList->ResourceBarrier(1, &barrier);
+        //D3DContext::FrameContext* frameCtx = WaitForNextFrameResources();
+        //UINT backBufferIdx = g_pSwapChain->GetCurrentBackBufferIndex();
+        //frameCtx->CommandAllocator->Reset();
 
-        // Render Dear ImGui graphics
-        ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-        const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
-        g_pd3dCommandList->ClearRenderTargetView(g_mainRenderTargetDescriptor[backBufferIdx], clear_color_with_alpha, 0, nullptr);
-        g_pd3dCommandList->OMSetRenderTargets(1, &g_mainRenderTargetDescriptor[backBufferIdx], FALSE, nullptr);
-        g_pd3dCommandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
-        //ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), g_pd3dCommandList);
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-        g_pd3dCommandList->ResourceBarrier(1, &barrier);
-        g_pd3dCommandList->Close();
+        //D3D12_RESOURCE_BARRIER barrier = {};
+        //barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        //barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        //barrier.Transition.pResource = g_mainRenderTargetResource[backBufferIdx];
+        //barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        //barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+        //barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        //g_pd3dCommandList->Reset(frameCtx->CommandAllocator, nullptr);
+        //g_pd3dCommandList->ResourceBarrier(1, &barrier);
 
-        g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)&g_pd3dCommandList);
+        //// Render Dear ImGui graphics
+        //ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+        //const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
+        //g_pd3dCommandList->ClearRenderTargetView(g_mainRenderTargetDescriptor[backBufferIdx], clear_color_with_alpha, 0, nullptr);
+        //g_pd3dCommandList->OMSetRenderTargets(1, &g_mainRenderTargetDescriptor[backBufferIdx], FALSE, nullptr);
+        //g_pd3dCommandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
+        ////ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), g_pd3dCommandList);
+        //barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        //barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+        //g_pd3dCommandList->ResourceBarrier(1, &barrier);
+        //g_pd3dCommandList->Close();
 
-        g_pSwapChain->Present(1, 0); // Present with vsync
-        //g_pSwapChain->Present(0, 0); // Present without vsync
+        //g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)&g_pd3dCommandList);
 
-        UINT64 fenceValue = g_fenceLastSignaledValue + 1;
-        g_pd3dCommandQueue->Signal(g_fence, fenceValue);
-        g_fenceLastSignaledValue = fenceValue;
-        frameCtx->FenceValue = fenceValue;
+        //g_pSwapChain->Present(1, 0); // Present with vsync
+        ////g_pSwapChain->Present(0, 0); // Present without vsync
+
+        //UINT64 fenceValue = g_fenceLastSignaledValue + 1;
+        //g_pd3dCommandQueue->Signal(g_fence, fenceValue);
+        //g_fenceLastSignaledValue = fenceValue;
+        //frameCtx->FenceValue = fenceValue;
     }
 
     IDXGISurface* D3DContext::GetBackBuffer()
@@ -496,70 +407,39 @@ namespace app
         return pBackBuffer;
     }
 
-    D3DContext::FrameContext* D3DContext::WaitForNextFrameResources()
+    ID3D11Device* D3DContext::GetDevice()
     {
-        UINT nextFrameIndex = g_frameIndex + 1;
-        g_frameIndex = nextFrameIndex;
+        return g_pd3dDevice;
+    }
 
-        HANDLE waitableObjects[] = { g_hSwapChainWaitableObject, nullptr };
-        DWORD numWaitableObjects = 1;
+    ID3D11DeviceContext* D3DContext::GetDeviceContext()
+    {
+        return g_pd3dDeviceContext;
+    }
 
-        FrameContext* frameCtx = &g_frameContext[nextFrameIndex % NUM_FRAMES_IN_FLIGHT];
-        UINT64 fenceValue = frameCtx->FenceValue;
-        if (fenceValue != 0) // means no fence was signaled
-        {
-            frameCtx->FenceValue = 0;
-            g_fence->SetEventOnCompletion(fenceValue, g_fenceEvent);
-            waitableObjects[1] = g_fenceEvent;
-            numWaitableObjects = 2;
-        }
-
-        WaitForMultipleObjects(numWaitableObjects, waitableObjects, TRUE, INFINITE);
-
-        return frameCtx;
+    ID3D11RenderTargetView* D3DContext::pRTV()
+    {
+        return g_mainRenderTargetView;
     }
 
     void D3DContext::CreateRenderTarget()
     {
-        for (UINT i = 0; i < NUM_BACK_BUFFERS; i++)
-        {
-            ID3D12Resource* pBackBuffer = nullptr;
-            g_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer));
-            g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, g_mainRenderTargetDescriptor[i]);
-            g_mainRenderTargetResource[i] = pBackBuffer;
-        }
+        ID3D11Texture2D* pBackBuffer;
+        g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
+        g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_mainRenderTargetView);
+        pBackBuffer->Release();
     }
 
     void D3DContext::CleanupRenderTarget()
     {
-        WaitForLastSubmittedFrame();
-
-        for (UINT i = 0; i < NUM_BACK_BUFFERS; i++)
-            if (g_mainRenderTargetResource[i]) { g_mainRenderTargetResource[i]->Release(); g_mainRenderTargetResource[i] = nullptr; }
+        if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
     }
 
     void D3DContext::CleanupDeviceD3D()
     {
         CleanupRenderTarget();
-        if (g_pSwapChain) { g_pSwapChain->SetFullscreenState(false, nullptr); g_pSwapChain->Release(); g_pSwapChain = nullptr; }
-        if (g_hSwapChainWaitableObject != nullptr) { CloseHandle(g_hSwapChainWaitableObject); }
-        for (UINT i = 0; i < NUM_FRAMES_IN_FLIGHT; i++)
-            if (g_frameContext[i].CommandAllocator) { g_frameContext[i].CommandAllocator->Release(); g_frameContext[i].CommandAllocator = nullptr; }
-        if (g_pd3dCommandQueue) { g_pd3dCommandQueue->Release(); g_pd3dCommandQueue = nullptr; }
-        if (g_pd3dCommandList) { g_pd3dCommandList->Release(); g_pd3dCommandList = nullptr; }
-        if (g_pd3dRtvDescHeap) { g_pd3dRtvDescHeap->Release(); g_pd3dRtvDescHeap = nullptr; }
-        if (g_pd3dSrvDescHeap) { g_pd3dSrvDescHeap->Release(); g_pd3dSrvDescHeap = nullptr; }
-        if (g_fence) { g_fence->Release(); g_fence = nullptr; }
-        if (g_fenceEvent) { CloseHandle(g_fenceEvent); g_fenceEvent = nullptr; }
+        if (g_pSwapChain) { g_pSwapChain->Release(); g_pSwapChain = nullptr; }
+        if (g_pd3dDeviceContext) { g_pd3dDeviceContext->Release(); g_pd3dDeviceContext = nullptr; }
         if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = nullptr; }
-
-#ifdef DX12_ENABLE_DEBUG_LAYER
-        IDXGIDebug1* pDebug = nullptr;
-        if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDebug))))
-        {
-            pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY);
-            pDebug->Release();
-        }
-#endif
     }
 }

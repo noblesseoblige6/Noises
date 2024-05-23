@@ -131,6 +131,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    if (g_pApp != nullptr)
+        g_pApp->MessageProc(hWnd, message, wParam, lParam);
+
     switch (message)
     {
     case WM_SIZE:
