@@ -19,12 +19,8 @@
 
 namespace app
 {
-    struct FrameContext
-    {
-        ID3D12CommandAllocator* CommandAllocator;
-        UINT64                  FenceValue;
-    };
-
+    class D2DContext;
+    class D3DContext;
     class Imgui;
     class App
     {
@@ -41,16 +37,10 @@ namespace app
         bool Init();
         void Update();
         void Render();
-        void Post();
+        void SwapFrame();
 
-        bool CreateDeviceD3D(HWND hWnd);
-        void CleanupDeviceD3D();
-        void CreateRenderTarget();
-        void CleanupRenderTarget();
-        void WaitForLastSubmittedFrame();
-        FrameContext* WaitForNextFrameResources();
-
-        bool InitDirect2D();
+        bool InitD2D();
+        bool InitD3D();
         void UpdateNoise();
 
     private:
@@ -62,9 +52,74 @@ namespace app
         std::uint32_t m_width{1024};
         std::uint32_t m_height{912};
 
-        HBITMAP hNoise;
-        HDC mhdc;
+        std::unique_ptr<Imgui> m_pImgui{nullptr};
 
+        std::unique_ptr <D3DContext> m_p3DContext{ nullptr };
+        std::unique_ptr <D2DContext> m_p2DContext{ nullptr };
+
+        ID2D1RenderTarget* m_pRTForD2D{ nullptr };
+        ID2D1Bitmap* m_pBitmap{ nullptr };
+    };
+
+    class Imgui
+    {
+    public:
+        Imgui(HWND hWnd, ID3D12Device* pDevice, std::uint32_t buffeFrames, ID3D12DescriptorHeap* pDescHeap);
+        ~Imgui();
+
+    public:
+        void Update();
+        void Render();
+    };
+}
+
+namespace app
+{
+    class D2DContext
+    {
+    public:
+        D2DContext() = default;
+        ~D2DContext();
+
+    public:
+        bool Init(HWND hWnd);
+        ID2D1RenderTarget* CreateRT(HWND hWnd, IDXGISurface* pBuffer);
+        ID2D1Bitmap* CreateBMP(ID2D1RenderTarget* pRT, std::uint32_t w, std::uint32_t h, BYTE* pBuff);
+
+    private:
+        ID2D1Factory* m_pFactory{ nullptr };
+    };
+}
+
+namespace app
+{
+    class D3DContext
+    {
+    public:
+        struct FrameContext
+        {
+            ID3D12CommandAllocator* CommandAllocator;
+            UINT64                  FenceValue;
+        };
+
+    public:
+        D3DContext() = default;
+        ~D3DContext();
+
+    public:
+        bool Init(HWND hWnd);
+        //bool CreateDeviceD3D(HWND hWnd);
+        void CleanupDeviceD3D();
+        void CreateRenderTarget();
+        void CleanupRenderTarget();
+        void WaitForLastSubmittedFrame();
+        FrameContext* WaitForNextFrameResources();
+
+        bool ResizeBuffer(std::uint32_t w, std::uint32_t h);
+        void WaitFence();
+        IDXGISurface* GetBackBuffer();
+
+    private:
         static constexpr auto         NUM_FRAMES_IN_FLIGHT = 3;
         FrameContext                 g_frameContext[NUM_FRAMES_IN_FLIGHT] = {};
         UINT                         g_frameIndex = 0;
@@ -82,23 +137,5 @@ namespace app
         HANDLE                       g_hSwapChainWaitableObject = nullptr;
         ID3D12Resource* g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
         D3D12_CPU_DESCRIPTOR_HANDLE  g_mainRenderTargetDescriptor[NUM_BACK_BUFFERS] = {};
-
-        std::unique_ptr<Imgui> m_pImgui{nullptr};
-
-        ID2D1Factory* pFactory{ nullptr };
-        ID2D1HwndRenderTarget* pRenderTarget{ nullptr };
-        ID2D1SolidColorBrush* pBrush{ nullptr };
-        ID2D1Bitmap* pBitmap;
-    };
-
-    class Imgui
-    {
-    public:
-        Imgui(HWND hWnd, ID3D12Device* pDevice, std::uint32_t buffeFrames, ID3D12DescriptorHeap* pDescHeap);
-        ~Imgui();
-
-    public:
-        void Update();
-        void Render();
     };
 }
