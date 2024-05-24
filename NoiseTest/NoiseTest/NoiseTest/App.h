@@ -21,7 +21,6 @@
 
 namespace app
 {
-    class D2DContext;
     class D3DContext;
     class Imgui;
     class App
@@ -33,8 +32,6 @@ namespace app
     public:
         bool Run();
         bool OnResize(std::uint32_t width, std::uint32_t height);
-        void OnPaint();
-        bool MessageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
     private:
         bool Init();
@@ -53,22 +50,25 @@ namespace app
         bool m_isResized{ false };
         bool m_beginResize{ false };
 
-        std::uint32_t m_width{1024};
-        std::uint32_t m_height{912};
+        std::uint32_t m_width{ 1024 };
+        std::uint32_t m_height{ 912 };
 
         std::int32_t m_size{ 512 };
-        std::int32_t m_noiseIndex{ 0 };
+        std::int32_t m_noiseType{ 0 };
         std::int32_t m_octave{ 1 };
         std::float_t m_frequency{ 1 / 32.f };
         std::float_t m_persistence{ 0.5f };
 
-        std::unique_ptr<Imgui> m_pImgui{nullptr};
+        std::unique_ptr<Imgui> m_pImgui{ nullptr };
 
         std::unique_ptr <D3DContext> m_p3DContext{ nullptr };
 
         ID3D11ShaderResourceView* m_pTex{ nullptr };
     };
+}
 
+namespace app
+{
     class Imgui
     {
     public:
@@ -77,8 +77,6 @@ namespace app
 
     public:
         void Begin();
-        void End();
-        void Render();
     };
 }
 
@@ -100,7 +98,6 @@ namespace app
         void WaitFence();
 
         ID3D11ShaderResourceView* CreateTexture(std::uint32_t w, std::uint32_t h, UINT8* pData);
-        IDXGISurface* GetBackBuffer();
         ID3D11Device* GetDevice();
         ID3D11DeviceContext* GetDeviceContext();
         ID3D11RenderTargetView* pRTV();

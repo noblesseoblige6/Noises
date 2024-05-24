@@ -5,6 +5,8 @@
 #include "NoiseTest.h"
 #include "App.h"
 
+#include "imgui/imgui.h"
+
 #define MAX_LOADSTRING 100
 
 // グローバル変数:
@@ -119,6 +121,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 //
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -131,9 +135,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    if (g_pApp != nullptr)
-        if (g_pApp->MessageProc(hWnd, message, wParam, lParam))
-            return true;
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+        return true;
 
     switch (message)
     {
@@ -158,12 +161,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
-        }
-        break;
-    case WM_PAINT:
-        {
-            if (g_pApp != nullptr)
-                g_pApp->OnPaint();
         }
         break;
     case WM_DESTROY:

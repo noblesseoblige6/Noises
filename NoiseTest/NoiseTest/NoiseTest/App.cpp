@@ -4,10 +4,10 @@
 #include "imgui/imgui_impl_dx11.h"
 
 #include "../../../include/mlnoise/BlockNoise.h"
+#include "../../../include/mlnoise/ValueNoise.h"
 #include "../../../include/mlnoise/PerlinNoise.h"
-#include "../../../include/mlnoise/BlockNoise.h"
+#include "../../../include/mlnoise/SimplexNoise.h"
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace app
 {
@@ -20,6 +20,14 @@ namespace app
             (*ppInterfaceToRelease) = NULL;
         }
     }
+
+    enum NoiseType
+    {
+        Block = 0,
+        Value,
+        Perlin,
+        Simplex,
+    };
 
     App::App(HWND hWnd, HINSTANCE hInst)
         : m_hWnd(hWnd)
@@ -57,17 +65,6 @@ namespace app
         return true;
     }
 
-    void App::OnPaint()
-    {
-    }
-
-    bool App::MessageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-    {
-        if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
-            return true;
-        return false;
-    }
-
     bool App::Init()
     {
         RECT rc;
@@ -91,26 +88,20 @@ namespace app
     {
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImVec2(m_width, m_height));
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        io.DisplaySize = ImVec2(m_width, m_height);
+        //ImGuiIO& io = ImGui::GetIO(); (void)io;
+        //io.DisplaySize = ImVec2(m_width, m_height);
+
+        bool isChanged = false;
 
         m_pImgui->Begin();
         {
-            ImGui::Begin("Noise properties");
+            ImGui::Begin("Properties");
 
-            ImGui::InputInt("Size", &m_size, 0, 16);
-
-            ImGui::Combo("Noise", &m_noiseIndex, "Block\0Value\0Perlin\0\0");
-
-            ImGui::SliderInt("Octave", &m_octave, 1, 16);
-            ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 1.f);
-            ImGui::SliderFloat("Persistence", &m_persistence, 0.01f, 0.5f);
-
-            if (ImGui::Button("Generate"))
-            {
-                UpdateNoise();
-                //InvalidateRect(m_hWnd, nullptr, false);
-            }
+            //ImGui::InputInt("Size", &m_size, 0, 16);
+            isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0\0");
+            isChanged |= ImGui::SliderInt("Octave", &m_octave, 1, 16);
+            isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 1.f);
+            isChanged |= ImGui::SliderFloat("Persistence", &m_persistence, 0.01f, 0.5f);
 
             ImGui::End();
 
@@ -119,7 +110,12 @@ namespace app
 
             ImGui::End();
         }
-        m_pImgui->End();
+
+        if (isChanged)
+        {
+            UpdateNoise();
+            return;
+        }
 
         if (m_isResized && !m_beginResize)
         {
@@ -148,11 +144,14 @@ namespace app
 
     void App::Render()
     {
-        m_pImgui->Render();
+        ImGui::Render();
+
         std::array<ID3D11RenderTargetView*, 1> ppRTVs = { { m_p3DContext->pRTV() } };
         m_p3DContext->GetDeviceContext()->OMSetRenderTargets(1, ppRTVs.data(), nullptr);
+
         const float clear_color_with_alpha[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
         m_p3DContext->GetDeviceContext()->ClearRenderTargetView(m_p3DContext->pRTV(), clear_color_with_alpha);
+
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
     }
 
@@ -170,19 +169,10 @@ namespace app
         return true;
     }
 
-    void App::UpdateNoise()
+    template<class T>
+    inline void Noise(UINT8* pData, std::int32_t w, std::int32_t h, std::float_t freq, std::int32_t octarve, std::float_t amp)
     {
-        mlnoise::PerlinNoise<std::float_t> noise;
-
-        auto const octarve = m_octave;
-        auto const freq = m_frequency;
-        auto const amp = m_persistence;
-
-        //FIXME: why is the ratio 1 to 1?
-        auto const w = m_size;
-        auto const h = m_size;
-
-        UINT8* pData = new UINT8[w * h * 4];
+        T noise;
         for (auto j = 0; j < h; j++)
         {
             for (auto i = 0; i < w; i++)
@@ -197,6 +187,40 @@ namespace app
                 pPixelData[2] = v;
                 pPixelData[3] = 255;
             }
+        }
+    }
+
+    void App::UpdateNoise()
+    {
+        //FIXME: why is the ratio 1 to 1?
+        auto const w = m_size;
+        auto const h = m_size;
+
+        UINT8* pData = new UINT8[w * h * 4];
+        switch (static_cast<NoiseType>(m_noiseType))
+        {
+        case NoiseType::Block:
+        {
+            Noise<mlnoise::BlockNoise<std::float_t>>(pData, w, h, m_frequency, m_octave, m_persistence);
+        }
+        break;
+        case NoiseType::Value:
+        {
+            Noise<mlnoise::ValueNoise<std::float_t>>(pData, w, h, m_frequency, m_octave, m_persistence);
+        }
+        break;
+        case NoiseType::Perlin:
+        {
+            Noise<mlnoise::PerlinNoise<std::float_t>>(pData, w, h, m_frequency, m_octave, m_persistence);
+        }
+        break;
+        case NoiseType::Simplex:
+        {
+            Noise<mlnoise::SimplexNoise<std::float_t>>(pData, w, h, m_frequency, m_octave, m_persistence);
+        }
+        break;
+        default:
+            break;
         }
 
         SafeRelease(&m_pTex);
@@ -234,16 +258,6 @@ namespace app
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-    }
-
-    void Imgui::End()
-    {
-        //ImGui::End();
-    }
-
-    void Imgui::Render()
-    {
-        ImGui::Render();
     }
 }
 
@@ -299,7 +313,6 @@ namespace app
 
     ID3D11ShaderResourceView* D3DContext::CreateTexture(std::uint32_t w, std::uint32_t h, UINT8* pData)
     {
-        // Create texture
         D3D11_TEXTURE2D_DESC desc;
         ZeroMemory(&desc, sizeof(desc));
         desc.Width = w;
@@ -319,25 +332,18 @@ namespace app
         subResource.SysMemSlicePitch = 0;
         m_pd3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
 
-        ID3D11ShaderResourceView* pOutTex = nullptr;
-        // Create texture view
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
         ZeroMemory(&srvDesc, sizeof(srvDesc));
         srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = desc.MipLevels;
         srvDesc.Texture2D.MostDetailedMip = 0;
+
+        ID3D11ShaderResourceView* pOutTex = nullptr;
         m_pd3dDevice->CreateShaderResourceView(pTexture, &srvDesc, &pOutTex);
         pTexture->Release();
 
         return pOutTex;
-    }
-
-    IDXGISurface* D3DContext::GetBackBuffer()
-    {
-        IDXGISurface* pBackBuffer = nullptr;
-        m_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-        return pBackBuffer;
     }
 
     ID3D11Device* D3DContext::GetDevice()
