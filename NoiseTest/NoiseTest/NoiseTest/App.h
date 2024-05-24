@@ -42,7 +42,6 @@ namespace app
         void Render();
         void SwapFrame();
 
-        bool InitD2D();
         bool InitD3D();
         void UpdateNoise();
 
@@ -57,13 +56,17 @@ namespace app
         std::uint32_t m_width{1024};
         std::uint32_t m_height{912};
 
+        std::int32_t m_size{ 512 };
+        std::int32_t m_noiseIndex{ 0 };
+        std::int32_t m_octave{ 1 };
+        std::float_t m_frequency{ 1 / 32.f };
+        std::float_t m_persistence{ 0.5f };
+
         std::unique_ptr<Imgui> m_pImgui{nullptr};
 
         std::unique_ptr <D3DContext> m_p3DContext{ nullptr };
-        std::unique_ptr <D2DContext> m_p2DContext{ nullptr };
 
-        ID2D1RenderTarget* m_pRTForD2D{ nullptr };
-        ID2D1Bitmap* m_pBitmap{ nullptr };
+        ID3D11ShaderResourceView* m_pTex{ nullptr };
     };
 
     class Imgui
@@ -73,26 +76,9 @@ namespace app
         ~Imgui();
 
     public:
-        void Update();
+        void Begin();
+        void End();
         void Render();
-    };
-}
-
-namespace app
-{
-    class D2DContext
-    {
-    public:
-        D2DContext() = default;
-        ~D2DContext();
-
-    public:
-        bool Init(HWND hWnd);
-        ID2D1RenderTarget* CreateRT(HWND hWnd, IDXGISurface* pBuffer);
-        ID2D1Bitmap* CreateBMP(ID2D1RenderTarget* pRT, std::uint32_t w, std::uint32_t h, BYTE* pBuff);
-
-    private:
-        ID2D1Factory* m_pFactory{ nullptr };
     };
 }
 
@@ -113,6 +99,7 @@ namespace app
         bool ResizeBuffer(std::uint32_t w, std::uint32_t h);
         void WaitFence();
 
+        ID3D11ShaderResourceView* CreateTexture(std::uint32_t w, std::uint32_t h, UINT8* pData);
         IDXGISurface* GetBackBuffer();
         ID3D11Device* GetDevice();
         ID3D11DeviceContext* GetDeviceContext();

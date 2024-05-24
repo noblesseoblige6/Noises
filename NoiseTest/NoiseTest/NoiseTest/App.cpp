@@ -29,8 +29,7 @@ namespace app
 
     App::~App()
     {
-        SafeRelease(&m_pRTForD2D);
-        SafeRelease(&m_pBitmap);
+        SafeRelease(&m_pTex);
 
         m_pImgui.reset();
     }
@@ -60,18 +59,6 @@ namespace app
 
     void App::OnPaint()
     {
-        PAINTSTRUCT ps;
-        BeginPaint(m_hWnd, &ps);
-
-        m_pRTForD2D->BeginDraw();
-
-        m_pRTForD2D->Clear(D2D1::ColorF(D2D1::ColorF::Green));
-
-        auto size = m_pBitmap->GetSize();
-        m_pRTForD2D->DrawBitmap(m_pBitmap, D2D1::RectF(0, 0, size.width, size.height));
-
-        m_pRTForD2D->EndDraw();
-        EndPaint(m_hWnd, &ps);
     }
 
     bool App::MessageProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -91,9 +78,6 @@ namespace app
         if (InitD3D() == false)
             return false;
 
-        if (InitD2D() == false)
-            return false;
-
         m_pImgui = std::make_unique<Imgui>(m_hWnd, m_p3DContext->GetDevice(), 1, m_p3DContext->GetDeviceContext());
 
         UpdateNoise();
@@ -105,7 +89,37 @@ namespace app
 
     void App::Update()
     {
-        //m_pImgui->Update();
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(ImVec2(m_width, m_height));
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        io.DisplaySize = ImVec2(m_width, m_height);
+
+        m_pImgui->Begin();
+        {
+            ImGui::Begin("Noise properties");
+
+            ImGui::InputInt("Size", &m_size, 0, 16);
+
+            ImGui::Combo("Noise", &m_noiseIndex, "Block\0Value\0Perlin\0\0");
+
+            ImGui::SliderInt("Octave", &m_octave, 1, 16);
+            ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 64.f);
+            ImGui::SliderFloat("Persistence", &m_persistence, 0.01f, 0.5f);
+
+            if (ImGui::Button("Generate"))
+            {
+                UpdateNoise();
+                //InvalidateRect(m_hWnd, nullptr, false);
+            }
+
+            ImGui::End();
+
+            ImGui::Begin("Preview");
+            ImGui::Image((void*)m_pTex, ImVec2(m_size, m_size));
+
+            ImGui::End();
+        }
+        m_pImgui->End();
 
         if (m_isResized && !m_beginResize)
         {
@@ -125,17 +139,6 @@ namespace app
                 m_p3DContext->ResizeBuffer(m_width, m_height);
                 m_p3DContext->CreateRenderTarget();
             }
-
-            if (m_pRTForD2D != nullptr)
-            {
-                SafeRelease(&m_pRTForD2D);
-                m_pRTForD2D = m_p2DContext->CreateRT(m_hWnd, m_p3DContext->GetBackBuffer());
-
-                UpdateNoise();
-
-                // calling WM_PAINT(update the window)
-                InvalidateRect(m_hWnd, nullptr, false);
-            }
         }
         else
         {
@@ -145,30 +148,17 @@ namespace app
 
     void App::Render()
     {
-        //m_pImgui->Render();
-        //std::array<ID3D11RenderTargetView*, 1> ppRTVs = { { m_p3DContext->pRTV() } };
-        //m_p3DContext->GetDeviceContext()->OMSetRenderTargets(1, ppRTVs.data(), nullptr);
-        //const float clear_color_with_alpha[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        //m_p3DContext->GetDeviceContext()->ClearRenderTargetView(m_p3DContext->pRTV(), clear_color_with_alpha);
-        //ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+        m_pImgui->Render();
+        std::array<ID3D11RenderTargetView*, 1> ppRTVs = { { m_p3DContext->pRTV() } };
+        m_p3DContext->GetDeviceContext()->OMSetRenderTargets(1, ppRTVs.data(), nullptr);
+        const float clear_color_with_alpha[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        m_p3DContext->GetDeviceContext()->ClearRenderTargetView(m_p3DContext->pRTV(), clear_color_with_alpha);
+        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
     }
 
     void App::SwapFrame()
     {
         m_p3DContext->WaitFence();
-    }
-
-    bool App::InitD2D()
-    {
-        m_p2DContext = std::make_unique<D2DContext>();
-        if (m_p2DContext->Init(m_hWnd) == false)
-            return false;
-
-        m_pRTForD2D = m_p2DContext->CreateRT(m_hWnd, m_p3DContext->GetBackBuffer());
-        if (m_pRTForD2D == nullptr)
-            return false;
-
-        return true;
     }
 
     bool App::InitD3D()
@@ -182,18 +172,15 @@ namespace app
 
     void App::UpdateNoise()
     {
-        if (m_pRTForD2D == nullptr)
-            return;
-
         mlnoise::PerlinNoise<std::float_t> noise;
 
-        constexpr auto octarve = 1;
-        constexpr auto freq = 1.0f / 128;
-        constexpr auto amp = 0.5f;
+        auto const octarve = m_octave;
+        auto const freq = m_frequency;
+        auto const amp = m_persistence;
 
         //FIXME: why is the ratio 1 to 1?
-        auto const w = m_width;
-        auto const h = m_width;
+        auto const w = m_size;
+        auto const h = m_size;
 
         UINT8* pData = new UINT8[w * h * 4];
         for (auto j = 0; j < h; j++)
@@ -212,8 +199,8 @@ namespace app
             }
         }
 
-        SafeRelease(&m_pBitmap);
-        m_pBitmap = m_p2DContext->CreateBMP(m_pRTForD2D, m_width, m_width, pData);
+        SafeRelease(&m_pTex);
+        m_pTex = m_p3DContext->CreateTexture(w, h, pData);
 
         delete[] pData;
     }
@@ -242,98 +229,21 @@ namespace app
         ImGui::DestroyContext();
     }
 
-    void Imgui::Update()
+    void Imgui::Begin()
     {
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(300, 250));
-
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-        {
-            static int oct = 0;
-            static int freq = 0;
-            static int i = 0;
-            static float f = 0.0f;
-            static int counter = 0;
+    }
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("Noise");               // Display some text (you can use a format strings too)
-
-            ImGui::Combo("Noise", &i, "Block\0Value\0Perlin\0\0");
-
-            ImGui::SliderInt("Octave", &oct, 0, 16);
-            ImGui::SliderFloat("Freq", &f, 0.01f, 64.f);
-            ImGui::SliderFloat("Persistence", &f, 0.01f, 0.5f);
-
-            if (ImGui::Button("Generate"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-
-            //ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            ImGui::End();
-        }
+    void Imgui::End()
+    {
+        //ImGui::End();
     }
 
     void Imgui::Render()
     {
         ImGui::Render();
-    }
-}
-
-namespace app
-{
-    D2DContext::~D2DContext()
-    {
-        SafeRelease(&m_pFactory);
-    }
-
-    bool D2DContext::Init(HWND hWnd)
-    {
-        HRESULT hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pFactory);
-        if (FAILED(hr))
-            return false;
-
-        return true;
-    }
-
-    ID2D1RenderTarget* D2DContext::CreateRT(HWND hWnd, IDXGISurface* pBuffer)
-    {
-        ID2D1RenderTarget* pRT = nullptr;
-
-        RECT rc;
-        GetClientRect(hWnd, &rc);
-
-        auto size = D2D1::SizeU(rc.right, rc.bottom);
-        /*HRESULT hr = m_pFactory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(),
-                                                      D2D1::HwndRenderTargetProperties(hWnd, size),
-                                                      &pRT);*/
-        FLOAT dpiX = 0.0f;
-        FLOAT dpiY = 0.0f;
-        //m_pFactory->GetDesktopDpi(&dpiX, &dpiY);
-        float dpi = GetDpiForWindow(hWnd);
-
-        D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-                D2D1_RENDER_TARGET_TYPE_DEFAULT,
-                D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED), dpi, dpi);
-
-        HRESULT hr = m_pFactory->CreateDxgiSurfaceRenderTarget(pBuffer, &props, &pRT);
-
-        if (FAILED(hr))
-            return nullptr;
-
-        return pRT;
-    }
-
-    ID2D1Bitmap* D2DContext::CreateBMP(ID2D1RenderTarget* pRT, std::uint32_t w, std::uint32_t h, BYTE* pBuff)
-    {
-        ID2D1Bitmap* pBMP = nullptr;
-        auto prop = D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_IGNORE));
-        auto hr = pRT->CreateBitmap(D2D1::SizeU(w, h), pBuff, w * 4, prop, &pBMP);
-        if (FAILED(hr))
-            return nullptr;
-
-        return pBMP;
     }
 }
 
@@ -385,6 +295,42 @@ namespace app
     void D3DContext::WaitFence()
     {
         m_pSwapChain->Present(0, 0);
+    }
+
+    ID3D11ShaderResourceView* D3DContext::CreateTexture(std::uint32_t w, std::uint32_t h, UINT8* pData)
+    {
+        // Create texture
+        D3D11_TEXTURE2D_DESC desc;
+        ZeroMemory(&desc, sizeof(desc));
+        desc.Width = w;
+        desc.Height = h;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        desc.CPUAccessFlags = 0;
+
+        ID3D11Texture2D* pTexture = NULL;
+        D3D11_SUBRESOURCE_DATA subResource;
+        subResource.pSysMem = pData;
+        subResource.SysMemPitch = desc.Width * 4;
+        subResource.SysMemSlicePitch = 0;
+        m_pd3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
+
+        ID3D11ShaderResourceView* pOutTex = nullptr;
+        // Create texture view
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+        ZeroMemory(&srvDesc, sizeof(srvDesc));
+        srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = desc.MipLevels;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+        m_pd3dDevice->CreateShaderResourceView(pTexture, &srvDesc, &pOutTex);
+        pTexture->Release();
+
+        return pOutTex;
     }
 
     IDXGISurface* D3DContext::GetBackBuffer()
