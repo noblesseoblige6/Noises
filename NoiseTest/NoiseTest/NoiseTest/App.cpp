@@ -103,7 +103,7 @@ namespace app
             ImGui::Combo("Noise", &m_noiseIndex, "Block\0Value\0Perlin\0\0");
 
             ImGui::SliderInt("Octave", &m_octave, 1, 16);
-            ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 64.f);
+            ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 1.f);
             ImGui::SliderFloat("Persistence", &m_persistence, 0.01f, 0.5f);
 
             if (ImGui::Button("Generate"))
@@ -258,7 +258,7 @@ namespace app
     {
         DXGI_SWAP_CHAIN_DESC sd;
         ZeroMemory(&sd, sizeof(sd));
-        sd.BufferCount = 1;
+        sd.BufferCount = 2;
         sd.BufferDesc.Width = 0;
         sd.BufferDesc.Height = 0;
         sd.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -270,7 +270,7 @@ namespace app
         sd.SampleDesc.Count = 1;
         sd.SampleDesc.Quality = 0;
         sd.Windowed = TRUE;
-        //sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+        sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
         UINT createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
         //createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -294,7 +294,7 @@ namespace app
 
     void D3DContext::WaitFence()
     {
-        m_pSwapChain->Present(0, 0);
+        m_pSwapChain->Present(1, 0);
     }
 
     ID3D11ShaderResourceView* D3DContext::CreateTexture(std::uint32_t w, std::uint32_t h, UINT8* pData)
