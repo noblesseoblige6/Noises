@@ -40,9 +40,9 @@ namespace mlnoise
             auto const yFract = y - yInt;
             auto const zFract = z - zInt;
 
-            auto const u = detail::Fade(xFract);
-            auto const v = detail::Fade(yFract);
-            auto const w = detail::Fade(zFract);
+            auto const u = this->SmoothStep(xFract);
+            auto const v = this->SmoothStep(yFract);
+            auto const w = this->SmoothStep(zFract);
 
             auto const rx0 = xInt & TableMask;
             auto const rx1 = (xInt + 1) & TableMask;

@@ -19,7 +19,19 @@ namespace mlnoise::detail
     }
 
     template<class T>
-    T Fade(T t) noexcept
+    T Fade_linear(T t) noexcept
+    {
+        return  t;
+    }
+
+    template<class T>
+    T Fade_cubic(T t) noexcept
+    {
+        return  t * t * (3.0 - 2.0 * t);
+    }
+
+    template<class T>
+    T Fade_quintic(T t) noexcept
     {
         return  t * t * t * (t * (t * 6 - 15) + 10);
     }
@@ -87,10 +99,33 @@ namespace mlnoise::detail
     class NoiseBase
     {
     public:
+        using FadeT = T(T);
+
+    public:
         NoiseBase() = default;
         ~NoiseBase() = default;
 
     public:
+        T SmoothStep(T x)
+        {
+            return m_fade(x);
+        }
+
+        void SetSmoothStep(FadeT func)
+        {
+            m_fade = func;
+        }
+
+        T GetLacunarity() const
+        {
+            return m_lacunarity;
+        }
+
+        void SetLacunarity(T val)
+        {
+            m_lacunarity = val;
+        }
+
         T Fractal(T x, std::int32_t octave, T persistence)
         {
             return Fractal(x, 0, 0, octave, persistence);
@@ -109,9 +144,9 @@ namespace mlnoise::detail
             for (auto i = 0; i < octave; i++)
             {
                 total += static_cast<Derived<T>&>(*this).Noise(x, y, z) * amp;
-                x *= 2.0;
-                y *= 2.0;
-                z *= 2.0;
+                x *= m_lacunarity;
+                y *= m_lacunarity;
+                z *= m_lacunarity;
                 amp *= persistence;
             }
             return total;
@@ -146,5 +181,9 @@ namespace mlnoise::detail
         {
             return Fractal(x, y, z, octave, persistence) / MaxAmplitude(octave, persistence);
         }
+
+    protected:
+        FadeT* m_fade{ Fade_quintic<T> };
+        T m_lacunarity{ 2 };
     };
 }

@@ -27,9 +27,9 @@ namespace mlnoise
             auto const yInt = static_cast<std::int32_t>(std::floor(y));
             auto const zInt = static_cast<std::int32_t>(std::floor(z));
 
-            auto const u = detail::Fade(x - xInt);
-            auto const v = detail::Fade(y - yInt);
-            auto const w = detail::Fade(z - zInt);
+            auto const u = this->SmoothStep(x - xInt);
+            auto const v = this->SmoothStep(y - yInt);
+            auto const w = this->SmoothStep(z - zInt);
 
             auto const rx0 = xInt & TableMask;
             auto const rx1 = (rx0 + 1) & TableMask;
