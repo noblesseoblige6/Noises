@@ -41,6 +41,7 @@ namespace app
 
         bool InitD3D();
         void UpdateNoise();
+        void UpdateWindowSize();
 
     private:
         HWND          m_hWnd;
@@ -50,10 +51,19 @@ namespace app
         bool m_isResized{ false };
         bool m_beginResize{ false };
 
+        using Rectf = std::tuple<std::float_t, std::float_t, std::float_t, std::float_t>;
+        Rectf m_clientSize;
+        Rectf m_propertySize;
+        Rectf m_previewSize;
+
+        using Size2f = std::pair<std::float_t, std::float_t>;
+        Size2f m_texSize;
+
         std::uint32_t m_width{ 1024 };
-        std::uint32_t m_height{ 912 };
+        std::uint32_t m_height{ 1024 };
 
         std::int32_t m_size{ 512 };
+
         std::int32_t m_noiseType{ 0 };
         std::int32_t m_octave{ 1 };
         std::float_t m_frequency{ 1 / 32.f };

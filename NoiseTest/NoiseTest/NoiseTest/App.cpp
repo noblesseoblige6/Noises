@@ -57,10 +57,16 @@ namespace app
 
     bool App::OnResize(std::uint32_t width, std::uint32_t height)
     {
-        m_width = width;
-        m_height = height;
-
         m_isResized = true;
+
+        m_clientSize =
+        {
+            std::get<0>(m_clientSize),
+            std::get<1>(m_clientSize),
+            width,
+            height
+        };
+        UpdateWindowSize();
 
         return true;
     }
@@ -69,8 +75,10 @@ namespace app
     {
         RECT rc;
         GetClientRect(m_hWnd, &rc);
-        m_width = rc.right - rc.left;
-        m_height = rc.bottom - rc.top;
+
+        m_clientSize = { rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top };
+        UpdateWindowSize();
+
 
         if (InitD3D() == false)
             return false;
@@ -86,13 +94,13 @@ namespace app
 
     void App::Update()
     {
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(m_width, m_height));
-
         bool isChanged = false;
 
         m_pImgui->Begin();
         {
+            ImGui::SetNextWindowPos (ImVec2(std::get<0>(m_propertySize), std::get<1>(m_propertySize)));
+            ImGui::SetNextWindowSize(ImVec2(std::get<2>(m_propertySize), std::get<3>(m_propertySize)));
+
             ImGui::Begin("Properties");
 
             //ImGui::InputInt("Size", &m_size, 0, 16);
@@ -103,8 +111,12 @@ namespace app
 
             ImGui::End();
 
-            ImGui::Begin("Preview");
-            ImGui::Image((void*)m_pTex, ImVec2(m_size, m_size));
+            ImGui::SetNextWindowPos (ImVec2(std::get<0>(m_previewSize), std::get<1>(m_previewSize)));
+            ImGui::SetNextWindowSize(ImVec2(std::get<2>(m_previewSize), std::get<3>(m_previewSize)));
+
+            ImGui::Begin("Preview", nullptr, ImGuiWindowFlags_HorizontalScrollbar);
+
+            ImGui::Image((void*)m_pTex, ImVec2(std::get<0>(m_texSize), std::get<1>(m_texSize)));
 
             ImGui::End();
         }
@@ -130,13 +142,12 @@ namespace app
             if (m_p3DContext != nullptr)
             {
                 m_p3DContext->CleanupRenderTarget();
-                m_p3DContext->ResizeBuffer(m_width, m_height);
+                m_p3DContext->ResizeBuffer(std::get<2>(m_clientSize), std::get<3>(m_clientSize));
                 m_p3DContext->CreateRenderTarget();
 
                 ImGuiIO& io = ImGui::GetIO(); (void)io;
-                io.DisplaySize = ImVec2(m_width, m_height);
+                io.DisplaySize = ImVec2(std::get<2>(m_clientSize), std::get<3>(m_clientSize));
                 io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-
             }
         }
         else
@@ -184,7 +195,7 @@ namespace app
 
                 unsigned char v = 255 * res;
 
-                UINT8* pPixelData = pData + (i + (j * h)) * 4;
+                UINT8* pPixelData = pData + (i + (j * w)) * 4;
                 pPixelData[0] = v;
                 pPixelData[1] = v;
                 pPixelData[2] = v;
@@ -195,9 +206,8 @@ namespace app
 
     void App::UpdateNoise()
     {
-        //FIXME: why is the ratio 1 to 1?
-        auto const w = m_size;
-        auto const h = m_size;
+        auto const w = std::get<0>(m_texSize);
+        auto const h = std::get<1>(m_texSize);
 
         UINT8* pData = new UINT8[w * h * 4];
         switch (static_cast<NoiseType>(m_noiseType))
@@ -230,6 +240,27 @@ namespace app
         m_pTex = m_p3DContext->CreateTexture(w, h, pData);
 
         delete[] pData;
+    }
+
+    void App::UpdateWindowSize()
+    {
+        m_propertySize =
+        {
+            std::get<0>(m_clientSize),
+            std::get<1>(m_clientSize),
+            std::get<2>(m_clientSize) / 4,
+            std::get<3>(m_clientSize),
+        };
+
+        m_previewSize =
+        {
+            std::get<0>(m_clientSize) + std::get<2>(m_propertySize),
+            std::get<1>(m_clientSize),
+            std::get<2>(m_clientSize) - std::get<2>(m_propertySize),
+            std::get<3>(m_clientSize),
+        };
+
+        m_texSize = { std::get<2>(m_previewSize), std::get<3>(m_previewSize) - 35 };
     }
 
     Imgui::Imgui(HWND hWnd, ID3D11Device* pDevice, std::uint32_t buffeFrames, ID3D11DeviceContext* pContext)
