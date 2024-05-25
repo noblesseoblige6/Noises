@@ -37,7 +37,7 @@ namespace app
 
     App::~App()
     {
-        SafeRelease(&m_pTex);
+        SafeRelease(&m_pNoiseTex);
 
         m_pImgui.reset();
     }
@@ -66,7 +66,6 @@ namespace app
             width,
             height
         };
-        UpdateWindowSize();
 
         return true;
     }
@@ -86,6 +85,7 @@ namespace app
         m_pImgui = std::make_unique<Imgui>(m_hWnd, m_p3DContext->GetDevice(), 1, m_p3DContext->GetDeviceContext());
 
         UpdateNoise();
+        UpdateNoiseTex();
 
         m_isInit = true;
 
@@ -94,6 +94,22 @@ namespace app
 
     void App::Update()
     {
+        bool canIgnoreChange = false;
+
+        if (m_future.valid())
+        {
+            auto status = m_future.wait_for(std::chrono::seconds(1));
+            if (status != std::future_status::ready)
+            {
+                canIgnoreChange = true;
+            }
+            else
+            {
+                UpdateNoiseTex();
+                m_future = std::future<void>();
+            }
+        }
+
         bool isChanged = false;
 
         m_pImgui->Begin();
@@ -103,7 +119,6 @@ namespace app
 
             ImGui::Begin("Properties");
 
-            //ImGui::InputInt("Size", &m_size, 0, 16);
             isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0\0");
             isChanged |= ImGui::SliderInt("Octave", &m_octave, 1, 16);
             isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 1.f);
@@ -116,44 +131,23 @@ namespace app
 
             ImGui::Begin("Preview", nullptr, ImGuiWindowFlags_HorizontalScrollbar);
 
-            ImGui::Image((void*)m_pTex, ImVec2(std::get<0>(m_texSize), std::get<1>(m_texSize)));
+            ImGui::Image((void*)m_pNoiseTex, ImVec2(std::get<0>(m_texSize), std::get<1>(m_texSize)));
 
             ImGui::End();
         }
 
-        if (isChanged)
+        if (isChanged == false)
+            return;
+
+        if (canIgnoreChange)
         {
-            UpdateNoise();
+            m_keptChange = true;
             return;
         }
 
-        if (m_isResized && !m_beginResize)
-        {
-            m_beginResize = true;
-            m_isResized = false;
-        }
-        else if(!m_isResized && m_beginResize)
-        {
-            std::cout << "Resize" << std::endl;
-
-            m_beginResize = false;
-            m_isResized = false;
-
-            if (m_p3DContext != nullptr)
-            {
-                m_p3DContext->CleanupRenderTarget();
-                m_p3DContext->ResizeBuffer(std::get<2>(m_clientSize), std::get<3>(m_clientSize));
-                m_p3DContext->CreateRenderTarget();
-
-                ImGuiIO& io = ImGui::GetIO(); (void)io;
-                io.DisplaySize = ImVec2(std::get<2>(m_clientSize), std::get<3>(m_clientSize));
-                io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-            }
-        }
-        else
-        {
-            m_isResized = false;
-        }
+        UpdateSize();
+        UpdateNoiseAsync();
+        m_keptChange = false;
     }
 
     void App::Render()
@@ -187,8 +181,10 @@ namespace app
     inline void Noise(UINT8* pData, std::int32_t w, std::int32_t h, std::float_t freq, std::int32_t octarve, std::float_t amp)
     {
         T noise;
+        #pragma omp parallel for
         for (auto j = 0; j < h; j++)
         {
+            #pragma omp parallel for
             for (auto i = 0; i < w; i++)
             {
                 auto res = noise.Fractal_01(i * freq, j * freq, octarve, amp);
@@ -209,37 +205,55 @@ namespace app
         auto const w = std::get<0>(m_texSize);
         auto const h = std::get<1>(m_texSize);
 
-        UINT8* pData = new UINT8[w * h * 4];
+        m_pTexBuffer = new UINT8[w * h * 4];
+
         switch (static_cast<NoiseType>(m_noiseType))
         {
         case NoiseType::Block:
         {
-            Noise<mlnoise::BlockNoise<std::float_t>>(pData, w, h, m_frequency, m_octave, m_persistence);
+            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence);
         }
         break;
         case NoiseType::Value:
         {
-            Noise<mlnoise::ValueNoise<std::float_t>>(pData, w, h, m_frequency, m_octave, m_persistence);
+            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence);
         }
         break;
         case NoiseType::Perlin:
         {
-            Noise<mlnoise::PerlinNoise<std::float_t>>(pData, w, h, m_frequency, m_octave, m_persistence);
+            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence);
         }
         break;
         case NoiseType::Simplex:
         {
-            Noise<mlnoise::SimplexNoise<std::float_t>>(pData, w, h, m_frequency, m_octave, m_persistence);
+            Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence);
         }
         break;
         default:
             break;
         }
+    }
 
-        SafeRelease(&m_pTex);
-        m_pTex = m_p3DContext->CreateTexture(w, h, pData);
+    void App::UpdateNoiseAsync()
+    {
+        m_future = std::async(std::launch::async, [&] { UpdateNoise(); });
+    }
 
-        delete[] pData;
+    void App::UpdateSize()
+    {
+        if (m_isResized == false)
+            return;
+
+        m_isResized = false;
+
+        UpdateWindowSize();
+
+        if (m_p3DContext != nullptr)
+        {
+            m_p3DContext->CleanupRenderTarget();
+            m_p3DContext->ResizeBuffer(std::get<2>(m_clientSize), std::get<3>(m_clientSize));
+            m_p3DContext->CreateRenderTarget();
+        }
     }
 
     void App::UpdateWindowSize()
@@ -260,7 +274,19 @@ namespace app
             std::get<3>(m_clientSize),
         };
 
-        m_texSize = { std::get<2>(m_previewSize), std::get<3>(m_previewSize) - 35 };
+        m_texSize = { std::get<2>(m_previewSize), std::get<3>(m_previewSize) /*- 35*/ };
+    }
+
+    void App::UpdateNoiseTex()
+    {
+        auto const w = std::get<0>(m_texSize);
+        auto const h = std::get<1>(m_texSize);
+
+        SafeRelease(&m_pNoiseTex);
+        m_pNoiseTex = m_p3DContext->CreateTexture(w, h, m_pTexBuffer);
+
+        delete[] m_pTexBuffer;
+        m_pTexBuffer = nullptr;
     }
 
     Imgui::Imgui(HWND hWnd, ID3D11Device* pDevice, std::uint32_t buffeFrames, ID3D11DeviceContext* pContext)

@@ -1,6 +1,8 @@
 #pragma once
 #include <iostream>
 #include <memory>
+#include <thread>
+#include <future>
 
 #include <wtypes.h>
 #include <windows.h>
@@ -40,8 +42,13 @@ namespace app
         void SwapFrame();
 
         bool InitD3D();
-        void UpdateNoise();
         void UpdateWindowSize();
+        void UpdateNoiseTex();
+
+        void UpdateNoise();
+        void UpdateNoiseAsync();
+
+        void UpdateSize();
 
     private:
         HWND          m_hWnd;
@@ -73,7 +80,12 @@ namespace app
 
         std::unique_ptr <D3DContext> m_p3DContext{ nullptr };
 
-        ID3D11ShaderResourceView* m_pTex{ nullptr };
+        UINT8* m_pTexBuffer = nullptr;
+        ID3D11ShaderResourceView* m_pNoiseTex{ nullptr };
+
+        bool m_keptChange = false;
+        std::future<void> m_future;
+        std::mutex m_mtx;
     };
 }
 
