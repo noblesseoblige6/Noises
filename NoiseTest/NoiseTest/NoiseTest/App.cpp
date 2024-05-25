@@ -88,8 +88,6 @@ namespace app
     {
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImVec2(m_width, m_height));
-        //ImGuiIO& io = ImGui::GetIO(); (void)io;
-        //io.DisplaySize = ImVec2(m_width, m_height);
 
         bool isChanged = false;
 
@@ -134,6 +132,11 @@ namespace app
                 m_p3DContext->CleanupRenderTarget();
                 m_p3DContext->ResizeBuffer(m_width, m_height);
                 m_p3DContext->CreateRenderTarget();
+
+                ImGuiIO& io = ImGui::GetIO(); (void)io;
+                io.DisplaySize = ImVec2(m_width, m_height);
+                io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+
             }
         }
         else

@@ -107,8 +107,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
-   g_hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+   g_hWnd = CreateWindowEx(0, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+      CW_USEDEFAULT, 0, 1300, 920, nullptr, nullptr, hInstance, nullptr);
 
    if (!g_hWnd)
    {
@@ -117,6 +117,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    ShowWindow(g_hWnd, nCmdShow);
    UpdateWindow(g_hWnd);
+
+   RECT rc;
+   GetClientRect(g_hWnd, &rc);
 
    return TRUE;
 }
