@@ -23,6 +23,21 @@
 
 namespace app
 {
+    enum NoiseType : std::int32_t
+    {
+        Block = 0,
+        Value,
+        Perlin,
+        Simplex,
+    };
+
+    enum SmoothStepType : std::int32_t
+    {
+        Quintic = 0,
+        Cubic,
+        Linear,
+    };
+
     class D3DContext;
     class Imgui;
     class App
@@ -72,9 +87,11 @@ namespace app
         std::int32_t m_size{ 512 };
 
         std::int32_t m_noiseType{ 0 };
-        std::int32_t m_octave{ 1 };
+        std::int32_t m_smopthStepType{ 0 };
         std::float_t m_frequency{ 1 / 32.f };
+        std::int32_t m_octave{ 1 };
         std::float_t m_persistence{ 0.5f };
+        std::float_t m_lacunarity{ 2.0f };
 
         std::unique_ptr<Imgui> m_pImgui{ nullptr };
 
