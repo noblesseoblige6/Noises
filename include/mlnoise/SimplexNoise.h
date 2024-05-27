@@ -47,23 +47,23 @@ namespace mlnoise
             T X0 = i - t; // Unskew the cell origin back to (x,y,z) space
             T Y0 = j - t;
             T Z0 = k - t;
-            T x0 = x - X0; // The x,y,z distances from the cell origin
-            T y0 = y - Y0;
-            T z0 = z - Z0;
+            T xFract = x - X0; // The x,y,z distances from the cell origin
+            T yFract = y - Y0;
+            T zFract = z - Z0;
 
             // For the 3D case, the simplex shape is a slightly irregular tetrahedron.
             // Determine which simplex we are in.
             std::int32_t i1, j1, k1; // Offsets for second corner of simplex in (i,j,k) coords
             std::int32_t i2, j2, k2; // Offsets for third corner of simplex in (i,j,k) coords
-            if (x0 >= y0)
+            if (xFract >= yFract)
             {
                 // X Y Z order
-                if (y0 >= z0)
+                if (yFract >= zFract)
                 {
                     i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 1; k2 = 0;
                 }
                 // X Z Y order
-                else if (x0 >= z0)
+                else if (xFract >= zFract)
                 {
                     i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 0; k2 = 1;
                 }
@@ -76,12 +76,12 @@ namespace mlnoise
             else
             {
                 // Z Y X order
-                if (y0 < z0)
+                if (yFract < zFract)
                 {
                     i1 = 0; j1 = 0; k1 = 1; i2 = 0; j2 = 1; k2 = 1;
                 }
                 // Y Z X order
-                else if (x0 < z0)
+                else if (xFract < zFract)
                 {
                     i1 = 0; j1 = 1; k1 = 0; i2 = 0; j2 = 1; k2 = 1;
                 }
@@ -96,17 +96,17 @@ namespace mlnoise
             // a step of (0,1,0) in (i,j,k) means a step of (-c,1-c,-c) in (x,y,z), and
             // a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
             // c = 1/6.
-            T x1 = x0 - i1 + G3; // Offsets for second corner in (x,y,z) coords
-            T y1 = y0 - j1 + G3;
-            T z1 = z0 - k1 + G3;
+            T x1 = xFract - i1 + G3; // Offsets for second corner in (x,y,z) coords
+            T y1 = yFract - j1 + G3;
+            T z1 = zFract - k1 + G3;
 
-            T x2 = x0 - i2 + 2.0 * G3; // Offsets for third corner in (x,y,z) coords
-            T y2 = y0 - j2 + 2.0 * G3;
-            T z2 = z0 - k2 + 2.0 * G3;
+            T x2 = xFract - i2 + 2.0 * G3; // Offsets for third corner in (x,y,z) coords
+            T y2 = yFract - j2 + 2.0 * G3;
+            T z2 = zFract - k2 + 2.0 * G3;
 
-            T x3 = x0 - 1.0 + 3.0 * G3; // Offsets for last corner in (x,y,z) coords
-            T y3 = y0 - 1.0 + 3.0 * G3;
-            T z3 = z0 - 1.0 + 3.0 * G3;
+            T x3 = xFract - 1.0 + 3.0 * G3; // Offsets for last corner in (x,y,z) coords
+            T y3 = yFract - 1.0 + 3.0 * G3;
+            T z3 = zFract - 1.0 + 3.0 * G3;
 
             // Work out the hashed gradient indices of the four simplex corners
             auto ii = i & 255;
@@ -119,7 +119,7 @@ namespace mlnoise
             auto gi3 = m_permutations[ii + 1 + m_permutations[jj + 1 + m_permutations[kk + 1]]] % 12;
 
             // Calculate the contribution from the four corners
-            T t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
+            T t0 = 0.6 - xFract * xFract - yFract * yFract - zFract * zFract;
             if (t0 < 0)
             {
                 n0 = 0.0;
@@ -127,7 +127,7 @@ namespace mlnoise
             else 
             {
                 t0 *= t0;
-                n0 = t0 * t0 * grad(gi0, x0, y0, z0);
+                n0 = t0 * t0 * grad(gi0, xFract, yFract, zFract);
             }
 
             T t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;

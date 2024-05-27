@@ -27,7 +27,7 @@ namespace mlnoise::detail
     template<class T>
     T Fade_cubic(T t) noexcept
     {
-        return  t * t * (3.0 - 2.0 * t);
+        return  t * t * (3 - 2 * t);
     }
 
     template<class T>
