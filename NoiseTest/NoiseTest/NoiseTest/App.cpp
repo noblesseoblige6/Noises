@@ -117,7 +117,7 @@ namespace app
             ImGui::SetNextWindowPos (ImVec2(std::get<0>(m_propertySize), std::get<1>(m_propertySize)));
             ImGui::SetNextWindowSize(ImVec2(std::get<2>(m_propertySize), std::get<3>(m_propertySize)));
 
-            ImGui::Begin("Properties");
+            ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
 
             isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0\0");
             isChanged |= ImGui::SliderInt("Seed", &m_seed, 0, 4096);
@@ -130,11 +130,14 @@ namespace app
             ImGui::SetNextWindowPos (ImVec2(std::get<0>(m_previewSize), std::get<1>(m_previewSize)));
             ImGui::SetNextWindowSize(ImVec2(std::get<2>(m_previewSize), std::get<3>(m_previewSize)));
 
-            ImGui::Begin("Preview", nullptr, ImGuiWindowFlags_HorizontalScrollbar);
+            ImGui::Begin("Preview", nullptr, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
             ImGui::Image((void*)m_pNoiseTex, ImVec2(std::get<0>(m_texSize), std::get<1>(m_texSize)));
 
             ImGui::End();
+
+            bool showDemo = true;
+            ImGui::ShowDemoWindow(&showDemo);
         }
 
         if (isChanged == false)
@@ -158,7 +161,7 @@ namespace app
         std::array<ID3D11RenderTargetView*, 1> ppRTVs = { { m_p3DContext->pRTV() } };
         m_p3DContext->GetDeviceContext()->OMSetRenderTargets(1, ppRTVs.data(), nullptr);
 
-        const float clear_color_with_alpha[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        const float clear_color_with_alpha[4] = { 0.45f, 0.55f, 0.60f, 1.00f };
         m_p3DContext->GetDeviceContext()->ClearRenderTargetView(m_p3DContext->pRTV(), clear_color_with_alpha);
 
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -311,6 +314,7 @@ namespace app
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+        io.ConfigFlags |= ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize;
 
         // Setup Dear ImGui style
         ImGui::StyleColorsDark();
