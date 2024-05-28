@@ -120,6 +120,7 @@ namespace app
             ImGui::Begin("Properties");
 
             isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0\0");
+            isChanged |= ImGui::SliderInt("Seed", &m_seed, 0, 4096);
             isChanged |= ImGui::SliderInt("Octave", &m_octave, 1, 16);
             isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 1.f);
             isChanged |= ImGui::SliderFloat("Persistence", &m_persistence, 0.01f, 0.5f);
@@ -178,9 +179,9 @@ namespace app
     }
 
     template<class T>
-    inline void Noise(UINT8* pData, std::int32_t w, std::int32_t h, std::float_t freq, std::int32_t octarve, std::float_t amp)
+    inline void Noise(UINT8* pData, std::int32_t w, std::int32_t h, std::int32_t seed, std::float_t freq, std::int32_t octarve, std::float_t amp)
     {
-        T noise;
+        T noise(seed);
         #pragma omp parallel for
         for (auto j = 0; j < h; j++)
         {
@@ -211,22 +212,22 @@ namespace app
         {
         case NoiseType::Block:
         {
-            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence);
+            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence);
         }
         break;
         case NoiseType::Value:
         {
-            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence);
+            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence);
         }
         break;
         case NoiseType::Perlin:
         {
-            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence);
+            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence);
         }
         break;
         case NoiseType::Simplex:
         {
-            //Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence);
+            //Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed,m_frequency, m_octave, m_persistence);
             mlnoise::SimplexNoise<std::float_t> noise;
             for (auto j = 0u; j < h; j++)
             {
