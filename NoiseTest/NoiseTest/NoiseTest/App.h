@@ -71,7 +71,7 @@ namespace app
 
         std::int32_t m_size{ 512 };
 
-        std::int32_t m_noiseType{ 0 };
+        std::int32_t m_noiseType{ 3 };
         std::int32_t m_octave{ 1 };
         std::float_t m_frequency{ 1 / 32.f };
         std::float_t m_persistence{ 0.5f };

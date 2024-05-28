@@ -226,7 +226,21 @@ namespace app
         break;
         case NoiseType::Simplex:
         {
-            Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence);
+            //Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence);
+            mlnoise::SimplexNoise<std::float_t> noise;
+            for (auto j = 0u; j < h; j++)
+            {
+                for (auto i = 0u; i < w; i++)
+                {
+                    //auto res = noise.NoiseX(i * m_frequency, j * m_frequency) * 255;
+
+                    UINT8* pPixelData = m_pTexBuffer + (i + (j * static_cast<std::int32_t>(w))) * 4;
+                    pPixelData[0] = noise.NoiseX(i * m_frequency, j * m_frequency) * 255;
+                    pPixelData[1] = noise.NoiseY(i * m_frequency, j * m_frequency) * 255;
+                    pPixelData[2] = 0;
+                    pPixelData[3] = 255;
+                }
+            }
         }
         break;
         default:
