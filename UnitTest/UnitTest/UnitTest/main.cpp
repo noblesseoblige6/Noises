@@ -8,43 +8,19 @@
 #include "../../../include/mlnoise/SimplexNoise.h"
 
 template<class Noise>
-void Output(const char* file, std::int32_t octarve, std::float_t freq, std::float_t amp)
+void Plot(const char* file, std::int32_t octarve, std::float_t freq, std::float_t amp)
 {
-    auto size = 512;
-    Image* colorImg = Create_Image(size, size);
+    std::ofstream ofs(file);
 
     Noise noise;
+
+    auto size = 512;
     for (auto i = 0; i < size; i++)
     {
-        for (auto j = 0; j < size; j++)
-        {
-            auto res = noise.Fractal_01(i * freq, j * freq, octarve, amp);
-
-#if 1
-            unsigned char v = 255 * res;
-
-            colorImg->data[i * size + j].r = v;
-            colorImg->data[i * size + j].g = v;
-            colorImg->data[i * size + j].b = v;
-#else
-            if (res >= 0.5)
-            {
-                colorImg->data[i * size + j].r = (res - 0.5) * 2 * 255;
-                colorImg->data[i * size + j].g = 0;
-                colorImg->data[i * size + j].b = 0;
-            }
-            else
-            {
-                colorImg->data[i * size + j].r = 0;
-                colorImg->data[i * size + j].g = res * 2 * 255;
-                colorImg->data[i * size + j].b = 0;
-            }
-#endif
-        }
+        ofs << i << " " << noise.Fractal_01(i * freq, octarve, amp) << std::endl;
     }
 
-    Write_Bmp(file, colorImg);
-    Free_Image(colorImg);
+    ofs.close();
 }
 
 
@@ -81,15 +57,15 @@ TEST_SUITE("Util")
 
 TEST_SUITE("Noise")
 {
-    TEST_CASE("Lattice based noise")
+    TEST_CASE("Plot")
     {
         constexpr auto octarve = 1;
-        constexpr auto freq    = 1.0f/128;
+        constexpr auto freq    = 1.0f/16;
         constexpr auto amp     = 0.5f;
 
-        Output<mlnoise::BlockNoise<std::float_t>>("./image/block.bmp", octarve, freq, amp);
-        Output<mlnoise::ValueNoise<std::float_t>>("./image/value.bmp", octarve, freq, amp);
-        Output<mlnoise::PerlinNoise<std::float_t>>("./image/perlin.bmp", octarve, freq, amp);
-        Output<mlnoise::SimplexNoise<std::float_t>>("./image/simplex.bmp", octarve, freq, amp);
+        Plot<mlnoise::BlockNoise<std::float_t>>  ("./plotData/block.txt", octarve, freq, amp);
+        Plot<mlnoise::ValueNoise<std::float_t>>  ("./plotData/value.txt", octarve, freq, amp);
+        Plot<mlnoise::PerlinNoise<std::float_t>> ("./plotData/perlin.txt", octarve, freq, amp);
+        Plot<mlnoise::SimplexNoise<std::float_t>>("./plotData/simplex.txt", octarve, freq, amp);
     }
 }

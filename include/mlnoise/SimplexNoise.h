@@ -30,6 +30,103 @@ namespace mlnoise
         ~SimplexNoise() = default;
 
     public:
+        std::pair<T, T> Test(T x, T y)
+        {
+            // Skew the input space to determine which simplex cell we're in
+            const T F2 = (3 - std::sqrt(3)) / static_cast<T>(6);
+            const T G2 = (std::sqrt(3) - 1) / static_cast<T>(2);
+
+            T s = (x + y) * F2;
+            auto i = static_cast<std::int32_t>(std::floor(x - s));
+            auto j = static_cast<std::int32_t>(std::floor(y - s));
+
+            // Unskew the cell origin back to (x,y) space
+            T t = (i + j) * G2;
+            T X0 = i + t;
+            T Y0 = j + t;
+
+            // The x,y distances from the cell origin
+            T x0 = x - X0;
+            T y0 = y - Y0;
+
+            std::int32_t i1, j1;
+            // lower triangle
+            if (x0 > y0) 
+            {
+                i1 = 1; j1 = 0;
+            }
+            // uppper triangle
+            else
+            {
+                i1 = 0; j1 = 1;
+            }
+
+            auto x1 = (x0 - i1) + G2;
+            auto y1 = (y0 - j1) + G2;
+            auto x2 = (x0 - 1) + 2 * G2;
+            auto y2 = (y0 - 1) + 2 * G2;
+
+            // Work out the hashed gradient indices of the three simplex corners
+            std::int32_t ii = i & 255;
+            std::int32_t jj = j & 255;
+            std::int32_t gi0 = m_permutations[ii + m_permutations[jj]] % 12;
+            std::int32_t gi1 = m_permutations[ii + i1 + m_permutations[jj + j1]] % 12;
+            std::int32_t gi2 = m_permutations[ii + 1 + m_permutations[jj + 1]] % 12;
+
+            
+            // Calculate the contribution from the three corners
+#if 1
+            T t0 = 0.5 - x0 * x0 - y0 * y0;
+            T n0 = (t0 < 0) ? 0.0 : t0 * t0 * t0 * t0;
+            
+            T t1 = 0.5 - x1 * x1 - y1 * y1;
+            T n1 = (t1 < 0) ? 0.0 : t1 * t1 * t1 * t1;
+
+            T t2 = 0.5 - x2 * x2 - y2 * y2;
+            T n2 = (t2 < 0) ? 0.0 : t2 * t2 * t2 * t2;
+#else
+            T n0, n1, n2;
+
+            T t0 = 0.5 - x0 * x0 - y0 * y0;
+            if (t0 < 0) n0 = 0.0;
+            else {
+                t0 *= t0;
+                //n0 = t0 * t0 * grad(gi0, x0, y0, 0); // (x,y) of grad3 used for 2D gradient
+                n0 = t0 * t0; // (x,y) of grad3 used for 2D gradient
+            }
+
+            T t1 = 0.5 - x1 * x1 - y1 * y1;
+            if (t1 < 0) n1 = 0.0;
+            else {
+                t1 *= t1;
+                //n1 = t1 * t1 * grad(gi1, x1, y1, 0);
+                n1 = t1 * t1;
+            }
+
+            T t2 = 0.5 - x2 * x2 - y2 * y2;
+            if (t2 < 0) n2 = 0.0;
+            else {
+                t2 *= t2;
+                //n2 = t2 * t2 * grad(gi2, x2, y2, 0);
+                n2 = t2 * t2;
+            }
+#endif
+            // Add contributions from each corner to get the final noise value.
+            // The result is scaled to return valu
+            //return 70.0 * (n0 + n1 + n2);
+            return { 70.0 * (n0 + n1 + n2), 70.0 * (n0 + n1 + n2) };
+        }
+
+        T NoiseX(T x, T y)
+        {
+            return Test(x, y).first;
+        }
+
+        T NoiseY(T x, T y)
+        {
+            return Test(x, y).second;
+        }
+
         T Noise(T x, T y, T z)
         {
             T n0, n1, n2, n3; // Noise contributions from the four corners

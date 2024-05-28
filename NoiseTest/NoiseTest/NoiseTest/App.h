@@ -87,6 +87,7 @@ namespace app
         std::int32_t m_size{ 512 };
 
         std::int32_t m_noiseType{ 0 };
+        std::int32_t m_seed{ 1024 };
         std::int32_t m_smopthStepType{ 0 };
         std::float_t m_frequency{ 1 / 32.f };
         std::int32_t m_octave{ 1 };

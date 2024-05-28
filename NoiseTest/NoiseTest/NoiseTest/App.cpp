@@ -109,9 +109,10 @@ namespace app
             ImGui::SetNextWindowPos (ImVec2(std::get<0>(m_propertySize), std::get<1>(m_propertySize)));
             ImGui::SetNextWindowSize(ImVec2(std::get<2>(m_propertySize), std::get<3>(m_propertySize)));
 
-            ImGui::Begin("Properties");
+            ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
 
             isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0\0");
+            isChanged |= ImGui::SliderInt("Seed", &m_seed, 0, 4096);
             isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.0f, 10.f);
             isChanged |= ImGui::Combo("SmoothStep", &m_smopthStepType, "Quintic\0Cubic\0Linear\0\0");
             ImGui::Text("Fractal");
@@ -124,11 +125,14 @@ namespace app
             ImGui::SetNextWindowPos (ImVec2(std::get<0>(m_previewSize), std::get<1>(m_previewSize)));
             ImGui::SetNextWindowSize(ImVec2(std::get<2>(m_previewSize), std::get<3>(m_previewSize)));
 
-            ImGui::Begin("Preview", nullptr, ImGuiWindowFlags_HorizontalScrollbar);
+            ImGui::Begin("Preview", nullptr, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
             ImGui::Image((void*)m_pNoiseTex, ImVec2(std::get<0>(m_texSize), std::get<1>(m_texSize)));
 
             ImGui::End();
+
+            bool showDemo = true;
+            ImGui::ShowDemoWindow(&showDemo);
         }
 
         if (isChanged == false)
@@ -152,7 +156,7 @@ namespace app
         std::array<ID3D11RenderTargetView*, 1> ppRTVs = { { m_p3DContext->pRTV() } };
         m_p3DContext->GetDeviceContext()->OMSetRenderTargets(1, ppRTVs.data(), nullptr);
 
-        const float clear_color_with_alpha[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        const float clear_color_with_alpha[4] = { 0.45f, 0.55f, 0.60f, 1.00f };
         m_p3DContext->GetDeviceContext()->ClearRenderTargetView(m_p3DContext->pRTV(), clear_color_with_alpha);
 
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -176,13 +180,15 @@ namespace app
     inline void Noise(UINT8* pData, 
                       std::int32_t w,
                       std::int32_t h,
+                      std::int32_t seed,
                       std::float_t freq, 
                       std::int32_t octarve, 
                       std::float_t amp,
                       std::float_t lacunarity,
                       std::int32_t smoothStep)
     {
-        T noise;
+        T noise(seed);
+
         switch (static_cast<SmoothStepType>(smoothStep))
         {
         case SmoothStepType::Quintic:
@@ -236,22 +242,36 @@ namespace app
         {
         case NoiseType::Block:
         {
-            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
+            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
         }
         break;
         case NoiseType::Value:
         {
-            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
+            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
         }
         break;
         case NoiseType::Perlin:
         {
-            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
+            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
         }
         break;
         case NoiseType::Simplex:
         {
-            Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
+            Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
+            //mlnoise::SimplexNoise<std::float_t> noise;
+            //for (auto j = 0u; j < h; j++)
+            //{
+            //    for (auto i = 0u; i < w; i++)
+            //    {
+            //        //auto res = noise.NoiseX(i * m_frequency, j * m_frequency) * 255;
+
+            //        UINT8* pPixelData = m_pTexBuffer + (i + (j * static_cast<std::int32_t>(w))) * 4;
+            //        pPixelData[0] = noise.NoiseX(i * m_frequency, j * m_frequency) * 255;
+            //        pPixelData[1] = noise.NoiseY(i * m_frequency, j * m_frequency) * 255;
+            //        pPixelData[2] = 0;
+            //        pPixelData[3] = 255;
+            //    }
+            //}
         }
         break;
         default:
@@ -321,6 +341,7 @@ namespace app
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+        io.ConfigFlags |= ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize;
 
         // Setup Dear ImGui style
         ImGui::StyleColorsDark();
