@@ -47,40 +47,6 @@ std::pair<T, T> Unskew(T i, T j)
     return { x, y };
 }
 
-template<class T>
-std::pair<T, T> Neighbor(T x, T y, T X0, T Y0)
-{
-    const T G2 = (3 - std::sqrt(3)) / static_cast<T>(6);
-
-    std::ofstream neightbor_ofs("./plotData/neighbor.dat");
-
-    T x0 = x - X0;
-    T y0 = y - Y0;
-
-    std::int32_t i1, j1;
-    // lower triangle
-    if (x0 > y0)
-    {
-        i1 = 1; j1 = 0;
-    }
-    // uppper triangle
-    else
-    {
-        i1 = 0; j1 = 1;
-    }
-    
-    auto x1 = (x0 + i1) + G2;
-    auto y1 = (y0 + j1) + G2;
-    auto x2 = (x0 + 1) + 2 * G2;
-    auto y2 = (y0 + 1) + 2 * G2;
-
-    neightbor_ofs << x0 << " " << y0 << std::endl;
-    neightbor_ofs << x1 << " " << y1 << std::endl;
-    neightbor_ofs << x2 << " " << y2 << std::endl;
-
-    return { x, y };
-}
-
 TEST_SUITE("Util")
 {
     TEST_CASE("Random table")
@@ -110,10 +76,26 @@ TEST_SUITE("Util")
             CHECK_EQ(*itr, *(itr + N));
         }
     }
+}
 
-    TEST_CASE("Skewing")
+TEST_SUITE("Plot")
+{
+    TEST_CASE("Noise")
     {
-        std::ofstream skew_ofs("./plotData/skew.dat");
+        constexpr auto octarve = 1;
+        constexpr auto freq    = 1.0f/32;
+        constexpr auto amp     = 0.5f;
+
+        Plot<mlnoise::BlockNoise<std::float_t>>  ("./plotData/block.dat", octarve, freq, amp);
+        Plot<mlnoise::ValueNoise<std::float_t>>  ("./plotData/value.dat", octarve, freq, amp);
+        Plot<mlnoise::PerlinNoise<std::float_t>> ("./plotData/perlin.dat", octarve, freq, amp);
+        Plot<mlnoise::SimplexNoise<std::float_t>>("./plotData/simplex.dat", octarve, freq, amp);
+    }
+
+
+    TEST_CASE("Skew")
+    {
+        std::ofstream skew_ofs  ("./plotData/skew.dat");
         std::ofstream unskew_ofs("./plotData/unskew.dat");
 
         for (auto y = 0; y < 32; ++y)
@@ -125,28 +107,58 @@ TEST_SUITE("Util")
 
                 skew_ofs << skewed.first << " " << skewed.second << std::endl;
                 unskew_ofs << unskewed.first << " " << unskewed.second << std::endl;
-
-                if (x < 3 && y < 3)
-                {
-                    Neighbor(static_cast<std::float_t>(x), static_cast<std::float_t>(y), unskewed.first, unskewed.second);
-                }
             }
         }
-
     }
-}
 
-TEST_SUITE("Noise")
-{
-    TEST_CASE("Plot")
+    TEST_CASE("2-order equation smoothstep")
     {
-        constexpr auto octarve = 1;
-        constexpr auto freq    = 1.0f/32;
-        constexpr auto amp     = 0.5f;
+        // f(x) = (1-x^2)^2
+        std::ofstream ofs   ("./plotData/equation_2_0.dat");
+        std::ofstream fd_ofs("./plotData/equation_2_1.dat");
+        std::ofstream sd_ofs("./plotData/equation_2_2.dat");
 
-        Plot<mlnoise::BlockNoise<std::float_t>>  ("./plotData/block.dat", octarve, freq, amp);
-        Plot<mlnoise::ValueNoise<std::float_t>>  ("./plotData/value.dat", octarve, freq, amp);
-        Plot<mlnoise::PerlinNoise<std::float_t>> ("./plotData/perlin.dat", octarve, freq, amp);
-        Plot<mlnoise::SimplexNoise<std::float_t>>("./plotData/simplex.dat", octarve, freq, amp);
+        auto x = -1.f;
+        for (auto i = 0; i < 128; ++i)
+        {
+            ofs << x << " " << std::pow(1 - x * x, 2) << std::endl;
+            fd_ofs << x << " " << 4 * std::pow(x, 3) - 4 * x << std::endl;
+            sd_ofs << x << " " << 12 * std::pow(x, 2) - 4 << std::endl;
+            x += 2.0f / 128;
+        }
+    }
+
+    TEST_CASE("3-order equation smoothstep")
+    {
+        // f(x) = (1-x^2)^3
+        std::ofstream ofs   ("./plotData/equation_3_0.dat");
+        std::ofstream fd_ofs("./plotData/equation_3_1.dat");
+        std::ofstream sd_ofs("./plotData/equation_3_2.dat");
+
+        auto x = -1.f;
+        for (auto i = 0; i < 128; ++i)
+        {
+            ofs << x << " " << std::pow(1 - x * x, 3) << std::endl;
+            fd_ofs << x << " " << -6 * std::pow(x, 5) + 12 * std::pow(x, 3) - 6 * x << std::endl;
+            sd_ofs << x << " " << -30 * std::pow(x, 4) + 36 * std::pow(x, 2) - 6 << std::endl;
+            x += 2.0f / 128;
+        }
+    }
+
+    TEST_CASE("4-order equation smoothstep")
+    {
+        // f(x) = (1-x^2)^4
+        std::ofstream ofs   ("./plotData/equation_4_0.dat");
+        std::ofstream fd_ofs("./plotData/equation_4_1.dat");
+        std::ofstream sd_ofs("./plotData/equation_4_2.dat");
+
+        auto x = -1.f;
+        for (auto i = 0; i < 128; ++i)
+        {
+            ofs << x << " " << std::pow(1 - x * x, 4) << std::endl;
+            fd_ofs << x << " " << 8 * std::pow(x, 7) - 24 * std::pow(x, 5) + 24 * x * x * x - 8 * x << std::endl;
+            sd_ofs << x << " " << 56 * std::pow(x, 6) - 120 * std::pow(x, 4) + 72 * x * x - 8 << std::endl;
+            x += 2.0f / 128;
+        }
     }
 }
