@@ -109,9 +109,9 @@ namespace mlnoise::detail
             for (auto i = 0; i < octave; i++)
             {
                 total += static_cast<Derived<T>&>(*this).Noise(x, y, z) * amp;
-                x *= 2.0;
-                y *= 2.0;
-                z *= 2.0;
+                x *= m_lacunarity;
+                y *= m_lacunarity;
+                z *= m_lacunarity;
                 amp *= persistence;
             }
             return total;
@@ -146,5 +146,11 @@ namespace mlnoise::detail
         {
             return Fractal(x, y, z, octave, persistence) / MaxAmplitude(octave, persistence);
         }
+
+        T GetLacunarity() const { return m_lacunarity; }
+        void SetLacunarity(T lacunarity) { m_lacunarity = lacunarity; }
+
+    private:
+        T m_lacunarity{ 2 };
     };
 }

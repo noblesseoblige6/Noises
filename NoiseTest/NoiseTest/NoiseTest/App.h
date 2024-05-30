@@ -75,6 +75,7 @@ namespace app
         std::int32_t m_octave{ 1 };
         std::float_t m_frequency{ 1 / 32.f };
         std::float_t m_persistence{ 0.5f };
+        std::float_t m_lacunarity{ 2.0f };
         std::int32_t m_seed{ 1024 };
 
         std::unique_ptr<Imgui> m_pImgui{ nullptr };

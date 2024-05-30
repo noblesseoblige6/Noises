@@ -121,10 +121,13 @@ namespace app
 
             isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0\0");
             isChanged |= ImGui::SliderInt("Seed", &m_seed, 0, 4096);
-            isChanged |= ImGui::SliderInt("Octave", &m_octave, 1, 16);
             isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 1.f);
-            isChanged |= ImGui::SliderFloat("Persistence", &m_persistence, 0.01f, 0.5f);
 
+            ImGui::Text("Fractal");
+            isChanged |= ImGui::SliderInt("Octave", &m_octave, 1, 16);
+            isChanged |= ImGui::SliderFloat("Persistence", &m_persistence, 0.01f, 0.5f);
+            isChanged |= ImGui::SliderFloat("Lacunarity", &m_lacunarity, 0.0f, 5.0f);
+            
             ImGui::End();
 
             ImGui::SetNextWindowPos (ImVec2(std::get<0>(m_previewSize), std::get<1>(m_previewSize)));
@@ -182,9 +185,11 @@ namespace app
     }
 
     template<class T>
-    inline void Noise(UINT8* pData, std::int32_t w, std::int32_t h, std::int32_t seed, std::float_t freq, std::int32_t octarve, std::float_t amp)
+    inline void Noise(UINT8* pData, std::int32_t w, std::int32_t h, std::int32_t seed, std::float_t freq, std::int32_t octarve, std::float_t amp, std::float_t lacunarity)
     {
         T noise(seed);
+        noise.SetLacunarity(lacunarity);
+
         #pragma omp parallel for
         for (auto j = 0; j < h; j++)
         {
@@ -215,36 +220,34 @@ namespace app
         {
         case NoiseType::Block:
         {
-            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence);
+            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
         }
         break;
         case NoiseType::Value:
         {
-            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence);
+            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
         }
         break;
         case NoiseType::Perlin:
         {
-            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence);
+            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
         }
         break;
         case NoiseType::Simplex:
         {
-            //Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed,m_frequency, m_octave, m_persistence);
-            mlnoise::SimplexNoise<std::float_t> noise;
-            for (auto j = 0u; j < h; j++)
-            {
-                for (auto i = 0u; i < w; i++)
-                {
-                    //auto res = noise.NoiseX(i * m_frequency, j * m_frequency) * 255;
-
-                    UINT8* pPixelData = m_pTexBuffer + (i + (j * static_cast<std::int32_t>(w))) * 4;
-                    pPixelData[0] = noise.NoiseX(i * m_frequency, j * m_frequency) * 255;
-                    pPixelData[1] = noise.NoiseY(i * m_frequency, j * m_frequency) * 255;
-                    pPixelData[2] = 0;
-                    pPixelData[3] = 255;
-                }
-            }
+            Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
+            //mlnoise::SimplexNoise<std::float_t> noise;
+            //for (auto j = 0u; j < h; j++)
+            //{
+            //    for (auto i = 0u; i < w; i++)
+            //    {
+            //        UINT8* pPixelData = m_pTexBuffer + (i + (j * static_cast<std::int32_t>(w))) * 4;
+            //        pPixelData[0] = noise.Noise(i * m_frequency, j * m_frequency, 0) * 255;
+            //        pPixelData[1] = noise.Noise(i * m_frequency, j * m_frequency, 0) * 255;
+            //        pPixelData[2] = noise.Noise(i * m_frequency, j * m_frequency, 0) * 255;
+            //        pPixelData[3] = 255;
+            //    }
+            //}
         }
         break;
         default:
