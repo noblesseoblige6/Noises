@@ -83,8 +83,8 @@ namespace mlnoise
             std::int32_t gi2 = m_permutations[ii + 1 + m_permutations[jj + 1]] % 12;
 
             // Calculate the contribution from the three corners
-#if 1
             constexpr T c = 0.5;
+#if 1
             T t0 = c - x0 * x0 - y0 * y0;
             T n0 = (t0 < 0) ? 0.0 : (t0 * t0 * t0 * t0);
 
@@ -94,16 +94,17 @@ namespace mlnoise
             T t2 = c - x2 * x2 - y2 * y2;
             T n2 = (t2 < 0) ? 0.0 : (t2 * t2 * t2 * t2);
 #else
-            T t0 = 0.5 - x0 * x0 - y0 * y0;
+            T t0 = c - x0 * x0 - y0 * y0;
             T n0 = (t0 < 0) ? 0.0 : (t0 * t0 * t0 * t0) * grad(gi0, x0, y0);
 
-            T t1 = 0.5 - x1 * x1 - y1 * y1;
+            T t1 = c - x1 * x1 - y1 * y1;
             T n1 = (t1 < 0) ? 0.0 : (t1 * t1 * t1 * t1) * grad(gi1, x1, y1);
 
-            T t2 = 0.5 - x2 * x2 - y2 * y2;
+            T t2 = c - x2 * x2 - y2 * y2;
             T n2 = (t2 < 0) ? 0.0 : (t2 * t2 * t2 * t2) * grad(gi2, x2, y2);
 #endif
-            //auto res = 45.23065 * (n0 + n1 + n2);
+            auto res_t = (t0 + t1 + t2);
+            auto res_n = (n0 + n1 + n2);
             //return { res, res, res };
             return { t0, t1, t2 };
             //return { n0, n1, n2};
