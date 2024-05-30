@@ -139,8 +139,8 @@ namespace app
 
             ImGui::End();
 
-            bool showDemo = true;
-            ImGui::ShowDemoWindow(&showDemo);
+            //bool showDemo = true;
+            //ImGui::ShowDemoWindow(&showDemo);
         }
 
         if (isChanged == false)
@@ -235,19 +235,19 @@ namespace app
         break;
         case NoiseType::Simplex:
         {
-            Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
-            //mlnoise::SimplexNoise<std::float_t> noise;
-            //for (auto j = 0u; j < h; j++)
-            //{
-            //    for (auto i = 0u; i < w; i++)
-            //    {
-            //        UINT8* pPixelData = m_pTexBuffer + (i + (j * static_cast<std::int32_t>(w))) * 4;
-            //        pPixelData[0] = noise.Noise(i * m_frequency, j * m_frequency, 0) * 255;
-            //        pPixelData[1] = noise.Noise(i * m_frequency, j * m_frequency, 0) * 255;
-            //        pPixelData[2] = noise.Noise(i * m_frequency, j * m_frequency, 0) * 255;
-            //        pPixelData[3] = 255;
-            //    }
-            //}
+            //Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
+            mlnoise::SimplexNoise<std::float_t> noise;
+            for (auto j = 0u; j < h; j++)
+            {
+                for (auto i = 0u; i < w; i++)
+                {
+                    UINT8* pPixelData = m_pTexBuffer + (i + (j * static_cast<std::int32_t>(w))) * 4;
+                    pPixelData[0] = noise.NoiseX(i * m_frequency, j * m_frequency) * 255;
+                    pPixelData[1] = noise.NoiseY(i * m_frequency, j * m_frequency) * 255;
+                    pPixelData[2] = noise.NoiseZ(i * m_frequency, j * m_frequency) * 255;
+                    pPixelData[3] = 255;
+                }
+            }
         }
         break;
         default:
