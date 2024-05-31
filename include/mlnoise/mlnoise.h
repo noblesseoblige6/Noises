@@ -3,6 +3,7 @@
 #include <numeric>
 #include <random>
 #include <functional>
+#include <limits>
 
 namespace mlnoise
 {

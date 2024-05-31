@@ -7,6 +7,7 @@
 #include "../../../include/mlnoise/ValueNoise.h"
 #include "../../../include/mlnoise/PerlinNoise.h"
 #include "../../../include/mlnoise/SimplexNoise.h"
+#include "../../../include/mlnoise/VoronoiNoise.h"
 
 
 namespace app
@@ -27,6 +28,7 @@ namespace app
         Value,
         Perlin,
         Simplex,
+        Voronoi,
     };
 
     App::App(HWND hWnd, HINSTANCE hInst)
@@ -119,7 +121,7 @@ namespace app
 
             ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
 
-            isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0\0");
+            isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0Voronoi\0\0");
             isChanged |= ImGui::SliderInt("Seed", &m_seed, 0, 4096);
             isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 1.f);
 
@@ -190,10 +192,10 @@ namespace app
         T noise(seed);
         noise.SetLacunarity(lacunarity);
 
-        #pragma omp parallel for
+        //#pragma omp parallel for
         for (auto j = 0; j < h; j++)
         {
-            #pragma omp parallel for
+            //#pragma omp parallel for
             for (auto i = 0; i < w; i++)
             {
                 auto res = noise.Fractal_01(i * freq, j * freq, octarve, amp);
@@ -248,6 +250,11 @@ namespace app
                     pPixelData[3] = 255;
                 }
             }
+        }
+        break;
+        case NoiseType::Voronoi:
+        {
+            Noise<mlnoise::VoronoiNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
         }
         break;
         default:

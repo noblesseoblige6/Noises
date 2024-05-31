@@ -84,6 +84,9 @@
     <ClInclude Include="imgui\imgui_impl_dx11.h">
       <Filter>ヘッダー ファイル\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\mlnoise\VoronoiNoise.h">
+      <Filter>ヘッダー ファイル\mlnoise</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NoiseTest.cpp">
