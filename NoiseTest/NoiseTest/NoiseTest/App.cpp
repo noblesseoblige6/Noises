@@ -22,15 +22,6 @@ namespace app
         }
     }
 
-    enum NoiseType
-    {
-        Block = 0,
-        Value,
-        Perlin,
-        Simplex,
-        Voronoi,
-    };
-
     App::App(HWND hWnd, HINSTANCE hInst)
         : m_hWnd(hWnd)
         , m_hInst(hInst)
@@ -122,13 +113,13 @@ namespace app
             ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
 
             isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0Voronoi\0\0");
-            isChanged |= ImGui::SliderInt("Seed", &m_seed, 0, 4096);
-            isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 1.f);
-
+            isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.001f, 1.f);
+            isChanged |= ImGui::Combo("SmoothStep", &m_smopthStepType, "Quintic\0Cubic\0Linear\0\0");
             ImGui::Text("Fractal");
-            isChanged |= ImGui::SliderInt("Octave", &m_octave, 1, 16);
-            isChanged |= ImGui::SliderFloat("Persistence", &m_persistence, 0.01f, 0.5f);
+            isChanged |= ImGui::SliderInt("Octave", &m_octave, 1, 8);
+            isChanged |= ImGui::SliderFloat("Persistence", &m_persistence, 0.0f, 1.0f);
             isChanged |= ImGui::SliderFloat("Lacunarity", &m_lacunarity, 0.0f, 5.0f);
+
             
             ImGui::End();
 
@@ -187,9 +178,39 @@ namespace app
     }
 
     template<class T>
-    inline void Noise(UINT8* pData, std::int32_t w, std::int32_t h, std::int32_t seed, std::float_t freq, std::int32_t octarve, std::float_t amp, std::float_t lacunarity)
+    inline void Noise(UINT8* pData,
+                      std::int32_t w,
+                      std::int32_t h,
+                      std::int32_t seed, 
+                      std::float_t freq, 
+                      std::int32_t octarve, 
+                      std::float_t amp, 
+                      std::float_t lacunarity,
+                      std::int32_t smoothStep)
     {
         T noise(seed);
+
+        switch (static_cast<SmoothStepType>(smoothStep))
+        {
+        case SmoothStepType::Quintic:
+        {
+            noise.SetSmoothStep(mlnoise::detail::Fade_quintic<std::float_t>);
+        }
+        break;
+        case SmoothStepType::Cubic:
+        {
+            noise.SetSmoothStep(mlnoise::detail::Fade_cubic<std::float_t>);
+        }
+        break;
+        case SmoothStepType::Linear:
+        {
+            noise.SetSmoothStep(mlnoise::detail::Fade_linear<std::float_t>);
+        }
+        break;
+        default:
+            break;
+        }
+
         noise.SetLacunarity(lacunarity);
 
         //#pragma omp parallel for
@@ -222,22 +243,22 @@ namespace app
         {
         case NoiseType::Block:
         {
-            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
+            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
         }
         break;
         case NoiseType::Value:
         {
-            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
+            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
         }
         break;
         case NoiseType::Perlin:
         {
-            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
+            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
         }
         break;
         case NoiseType::Simplex:
         {
-            //Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
+            //Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
             mlnoise::SimplexNoise<std::float_t> noise;
             for (auto j = 0u; j < h; j++)
             {
@@ -254,7 +275,7 @@ namespace app
         break;
         case NoiseType::Voronoi:
         {
-            Noise<mlnoise::VoronoiNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
+            Noise<mlnoise::VoronoiNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
         }
         break;
         default:

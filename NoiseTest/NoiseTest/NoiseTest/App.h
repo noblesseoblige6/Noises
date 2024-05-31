@@ -29,6 +29,7 @@ namespace app
         Value,
         Perlin,
         Simplex,
+        Voronoi,
     };
 
     enum SmoothStepType : std::int32_t
