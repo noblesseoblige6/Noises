@@ -12,12 +12,21 @@ namespace mlnoise
 
         static T grad(std::int32_t hash, T x, T y, T z) noexcept
         {
-            auto h = hash & 15;
+            auto const h = hash & 15;
 
-            T u = h < 8 ? x : y;
-            T v = h < 4 ? y : h == 12 || h == 14 ? x : z;
+            auto const u = h < 8 ? x : y;
+            auto const v = h < 4 ? y : h == 12 || h == 14 ? x : z;
 
             return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+        }
+
+        static T grad(std::int32_t hash, T x, T y) noexcept
+        {
+            auto const h = hash & 0x3F;  // Convert low 3 bits of hash code
+
+            auto const u = h < 4 ? x : y;  // into 8 simple gradient directions,
+            auto const v = h < 4 ? y : x;
+            return ((h & 1) ? -u : u) + ((h & 2) ? -2.0f * v : 2.0f * v); // and compute the dot product with (x,y).
         }
 
     public:
@@ -30,20 +39,20 @@ namespace mlnoise
         ~SimplexNoise() = default;
 
     public:
-        std::pair<T, T> Test(T x, T y)
+        std::tuple<T, T, T> Test(T x, T y)
         {
             // Skew the input space to determine which simplex cell we're in
-            const T F2 = (3 - std::sqrt(3)) / static_cast<T>(6);
-            const T G2 = (std::sqrt(3) - 1) / static_cast<T>(2);
+            const T F2 = (std::sqrt(3) - 1) / static_cast<T>(2);
+            const T G2 = (3 - std::sqrt(3)) / static_cast<T>(6);
 
             T s = (x + y) * F2;
-            auto i = static_cast<std::int32_t>(std::floor(x - s));
-            auto j = static_cast<std::int32_t>(std::floor(y - s));
+            auto i = static_cast<std::int32_t>(std::floor(x + s));
+            auto j = static_cast<std::int32_t>(std::floor(y + s));
 
             // Unskew the cell origin back to (x,y) space
             T t = (i + j) * G2;
-            T X0 = i + t;
-            T Y0 = j + t;
+            T X0 = i - t;
+            T Y0 = j - t;
 
             // The x,y distances from the cell origin
             T x0 = x - X0;
@@ -73,58 +82,47 @@ namespace mlnoise
             std::int32_t gi1 = m_permutations[ii + i1 + m_permutations[jj + j1]] % 12;
             std::int32_t gi2 = m_permutations[ii + 1 + m_permutations[jj + 1]] % 12;
 
-            
             // Calculate the contribution from the three corners
+            constexpr T c = 0.5;
 #if 1
-            T t0 = 0.5 - x0 * x0 - y0 * y0;
-            T n0 = (t0 < 0) ? 0.0 : t0 * t0 * t0 * t0;
-            
-            T t1 = 0.5 - x1 * x1 - y1 * y1;
-            T n1 = (t1 < 0) ? 0.0 : t1 * t1 * t1 * t1;
+            T t0 = c - x0 * x0 - y0 * y0;
+            T n0 = (t0 < 0) ? 0.0 : (t0 * t0 * t0 * t0);
 
-            T t2 = 0.5 - x2 * x2 - y2 * y2;
-            T n2 = (t2 < 0) ? 0.0 : t2 * t2 * t2 * t2;
+            T t1 = c - x1 * x1 - y1 * y1;
+            T n1 = (t1 < 0) ? 0.0 : (t1 * t1 * t1 * t1);
+
+            T t2 = c - x2 * x2 - y2 * y2;
+            T n2 = (t2 < 0) ? 0.0 : (t2 * t2 * t2 * t2);
 #else
-            T n0, n1, n2;
+            T t0 = c - x0 * x0 - y0 * y0;
+            T n0 = (t0 < 0) ? 0.0 : (t0 * t0 * t0 * t0) * grad(gi0, x0, y0);
 
-            T t0 = 0.5 - x0 * x0 - y0 * y0;
-            if (t0 < 0) n0 = 0.0;
-            else {
-                t0 *= t0;
-                //n0 = t0 * t0 * grad(gi0, x0, y0, 0); // (x,y) of grad3 used for 2D gradient
-                n0 = t0 * t0; // (x,y) of grad3 used for 2D gradient
-            }
+            T t1 = c - x1 * x1 - y1 * y1;
+            T n1 = (t1 < 0) ? 0.0 : (t1 * t1 * t1 * t1) * grad(gi1, x1, y1);
 
-            T t1 = 0.5 - x1 * x1 - y1 * y1;
-            if (t1 < 0) n1 = 0.0;
-            else {
-                t1 *= t1;
-                //n1 = t1 * t1 * grad(gi1, x1, y1, 0);
-                n1 = t1 * t1;
-            }
-
-            T t2 = 0.5 - x2 * x2 - y2 * y2;
-            if (t2 < 0) n2 = 0.0;
-            else {
-                t2 *= t2;
-                //n2 = t2 * t2 * grad(gi2, x2, y2, 0);
-                n2 = t2 * t2;
-            }
+            T t2 = c - x2 * x2 - y2 * y2;
+            T n2 = (t2 < 0) ? 0.0 : (t2 * t2 * t2 * t2) * grad(gi2, x2, y2);
 #endif
-            // Add contributions from each corner to get the final noise value.
-            // The result is scaled to return valu
-            //return 70.0 * (n0 + n1 + n2);
-            return { 70.0 * (n0 + n1 + n2), 70.0 * (n0 + n1 + n2) };
+            auto res_t = (t0 + t1 + t2);
+            auto res_n = (n0 + n1 + n2);
+            //return { res, res, res };
+            return { t0, t1, t2 };
+            //return { n0, n1, n2};
         }
 
         T NoiseX(T x, T y)
         {
-            return Test(x, y).first;
+            return detail::Remap_01(std::get<0>(Test(x, y)));
         }
 
         T NoiseY(T x, T y)
         {
-            return Test(x, y).second;
+            return detail::Remap_01(std::get<1>(Test(x, y)));
+        }
+
+        T NoiseZ(T x, T y)
+        {
+            return detail::Remap_01(std::get<2>(Test(x, y)));
         }
 
         T Noise(T x, T y, T z)

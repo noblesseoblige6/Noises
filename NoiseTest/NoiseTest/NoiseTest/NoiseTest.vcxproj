@@ -138,6 +138,7 @@
     <ClInclude Include="..\..\..\include\mlnoise\PerlinNoise.h" />
     <ClInclude Include="..\..\..\include\mlnoise\SimplexNoise.h" />
     <ClInclude Include="..\..\..\include\mlnoise\ValueNoise.h" />
+    <ClInclude Include="..\..\..\include\mlnoise\VoronoiNoise.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="imgui\imconfig.h" />

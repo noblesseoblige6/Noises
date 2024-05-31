@@ -7,6 +7,7 @@
 #include "../../../include/mlnoise/ValueNoise.h"
 #include "../../../include/mlnoise/PerlinNoise.h"
 #include "../../../include/mlnoise/SimplexNoise.h"
+#include "../../../include/mlnoise/VoronoiNoise.h"
 
 
 namespace app
@@ -20,6 +21,15 @@ namespace app
             (*ppInterfaceToRelease) = NULL;
         }
     }
+
+    enum NoiseType
+    {
+        Block = 0,
+        Value,
+        Perlin,
+        Simplex,
+        Voronoi,
+    };
 
     App::App(HWND hWnd, HINSTANCE hInst)
         : m_hWnd(hWnd)
@@ -111,15 +121,15 @@ namespace app
 
             ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
 
-            isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0\0");
+            isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0Voronoi\0\0");
             isChanged |= ImGui::SliderInt("Seed", &m_seed, 0, 4096);
-            isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.0f, 10.f);
-            isChanged |= ImGui::Combo("SmoothStep", &m_smopthStepType, "Quintic\0Cubic\0Linear\0\0");
-            ImGui::Text("Fractal");
-            isChanged |= ImGui::SliderInt("Octave", &m_octave, 1, 8);
-            isChanged |= ImGui::SliderFloat("Persistence", &m_persistence, 0.0f, 1.0f);
-            isChanged |= ImGui::SliderFloat("Lacunarity", &m_lacunarity, 0.0f, 5.0f);
+            isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.01f, 1.f);
 
+            ImGui::Text("Fractal");
+            isChanged |= ImGui::SliderInt("Octave", &m_octave, 1, 16);
+            isChanged |= ImGui::SliderFloat("Persistence", &m_persistence, 0.01f, 0.5f);
+            isChanged |= ImGui::SliderFloat("Lacunarity", &m_lacunarity, 0.0f, 5.0f);
+            
             ImGui::End();
 
             ImGui::SetNextWindowPos (ImVec2(std::get<0>(m_previewSize), std::get<1>(m_previewSize)));
@@ -131,8 +141,8 @@ namespace app
 
             ImGui::End();
 
-            bool showDemo = true;
-            ImGui::ShowDemoWindow(&showDemo);
+            //bool showDemo = true;
+            //ImGui::ShowDemoWindow(&showDemo);
         }
 
         if (isChanged == false)
@@ -177,45 +187,15 @@ namespace app
     }
 
     template<class T>
-    inline void Noise(UINT8* pData, 
-                      std::int32_t w,
-                      std::int32_t h,
-                      std::int32_t seed,
-                      std::float_t freq, 
-                      std::int32_t octarve, 
-                      std::float_t amp,
-                      std::float_t lacunarity,
-                      std::int32_t smoothStep)
+    inline void Noise(UINT8* pData, std::int32_t w, std::int32_t h, std::int32_t seed, std::float_t freq, std::int32_t octarve, std::float_t amp, std::float_t lacunarity)
     {
         T noise(seed);
-
-        switch (static_cast<SmoothStepType>(smoothStep))
-        {
-        case SmoothStepType::Quintic:
-        {
-            noise.SetSmoothStep(mlnoise::detail::Fade_quintic<std::float_t>);
-        }
-        break;
-        case SmoothStepType::Cubic:
-        {
-            noise.SetSmoothStep(mlnoise::detail::Fade_cubic<std::float_t>);
-        }
-        break;
-        case SmoothStepType::Linear:
-        {
-            noise.SetSmoothStep(mlnoise::detail::Fade_linear<std::float_t>);
-        }
-        break;
-        default:
-            break;
-        }
-
         noise.SetLacunarity(lacunarity);
 
-        #pragma omp parallel for
+        //#pragma omp parallel for
         for (auto j = 0; j < h; j++)
         {
-            #pragma omp parallel for
+            //#pragma omp parallel for
             for (auto i = 0; i < w; i++)
             {
                 auto res = noise.Fractal_01(i * freq, j * freq, octarve, amp);
@@ -242,36 +222,39 @@ namespace app
         {
         case NoiseType::Block:
         {
-            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
+            Noise<mlnoise::BlockNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
         }
         break;
         case NoiseType::Value:
         {
-            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
+            Noise<mlnoise::ValueNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
         }
         break;
         case NoiseType::Perlin:
         {
-            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
+            Noise<mlnoise::PerlinNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
         }
         break;
         case NoiseType::Simplex:
         {
-            Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity, m_smopthStepType);
-            //mlnoise::SimplexNoise<std::float_t> noise;
-            //for (auto j = 0u; j < h; j++)
-            //{
-            //    for (auto i = 0u; i < w; i++)
-            //    {
-            //        //auto res = noise.NoiseX(i * m_frequency, j * m_frequency) * 255;
-
-            //        UINT8* pPixelData = m_pTexBuffer + (i + (j * static_cast<std::int32_t>(w))) * 4;
-            //        pPixelData[0] = noise.NoiseX(i * m_frequency, j * m_frequency) * 255;
-            //        pPixelData[1] = noise.NoiseY(i * m_frequency, j * m_frequency) * 255;
-            //        pPixelData[2] = 0;
-            //        pPixelData[3] = 255;
-            //    }
-            //}
+            //Noise<mlnoise::SimplexNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
+            mlnoise::SimplexNoise<std::float_t> noise;
+            for (auto j = 0u; j < h; j++)
+            {
+                for (auto i = 0u; i < w; i++)
+                {
+                    UINT8* pPixelData = m_pTexBuffer + (i + (j * static_cast<std::int32_t>(w))) * 4;
+                    pPixelData[0] = noise.NoiseX(i * m_frequency, j * m_frequency) * 255;
+                    pPixelData[1] = noise.NoiseY(i * m_frequency, j * m_frequency) * 255;
+                    pPixelData[2] = noise.NoiseZ(i * m_frequency, j * m_frequency) * 255;
+                    pPixelData[3] = 255;
+                }
+            }
+        }
+        break;
+        case NoiseType::Voronoi:
+        {
+            Noise<mlnoise::VoronoiNoise<std::float_t>>(m_pTexBuffer, w, h, m_seed, m_frequency, m_octave, m_persistence, m_lacunarity);
         }
         break;
         default:
