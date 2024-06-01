@@ -79,6 +79,7 @@ namespace app
         Rectf m_propertySize;
         Rectf m_previewSize;
 
+        using Size2i = std::pair<std::int32_t, std::int32_t>;
         using Size2f = std::pair<std::float_t, std::float_t>;
         Size2f m_texSize;
 
@@ -87,13 +88,16 @@ namespace app
 
         std::int32_t m_size{ 512 };
 
-        std::int32_t m_noiseType{ 0 };
+        std::int32_t m_noiseType{ 4 };
         std::int32_t m_seed{ 1024 };
         std::int32_t m_smopthStepType{ 0 };
-        std::float_t m_frequency{ 1 / 32.f };
+        std::float_t m_frequency{ 1.f / 64.f };
         std::int32_t m_octave{ 1 };
         std::float_t m_persistence{ 0.5f };
         std::float_t m_lacunarity{ 2.0f };
+
+        std::float_t m_jittering{ 1.0f };
+        std::int32_t m_voronoiOutType{ 0 };
 
         std::unique_ptr<Imgui> m_pImgui{ nullptr };
 

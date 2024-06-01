@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <numeric>
+#include <algorithm>
 #include <random>
 #include <functional>
 #include <limits>
@@ -40,7 +41,7 @@ namespace mlnoise::detail
     template<class T>
     T Remap_01(T x) noexcept
     {
-        return x * 0.5 + 0.5;
+        return x * static_cast<T>(0.5) + static_cast<T>(0.5);
     }
 
     template<class T>
@@ -65,11 +66,11 @@ namespace mlnoise::detail
     }
 
     template<class T, std::size_t N, class Engine>
-    auto RandomTable(Engine& gen) noexcept
+    auto RandomTable(Engine& gen, T min, T max) noexcept
     {
         std::array<T, N> res;
 
-        auto rand = [dist = std::uniform_real_distribution<T>(-1, 1), &gen](T& val) mutable
+        auto rand = [dist = std::uniform_real_distribution<T>(min, max), &gen](T& val) mutable
             {
                 val = dist(gen);
             };
@@ -77,6 +78,18 @@ namespace mlnoise::detail
         std::for_each(res.begin(), res.end(), rand);
 
         return res;
+    }
+
+    template<class T, std::size_t N, class Engine>
+    auto RandomTable_01(Engine& gen) noexcept
+    {
+        return RandomTable<T, N>(gen, 0, 1);
+    }
+
+    template<class T, std::size_t N, class Engine>
+    auto RandomTable_11(Engine& gen) noexcept
+    {
+        return RandomTable<T, N>(gen, -1, 1);
     }
 
     template<class T, std::size_t N, class Engine>

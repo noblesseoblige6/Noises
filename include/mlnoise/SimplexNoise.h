@@ -42,8 +42,8 @@ namespace mlnoise
         std::tuple<T, T, T> Test(T x, T y)
         {
             // Skew the input space to determine which simplex cell we're in
-            const T F2 = (std::sqrt(3) - 1) / static_cast<T>(2);
-            const T G2 = (3 - std::sqrt(3)) / static_cast<T>(6);
+            const T F2 = (std::sqrt(static_cast<T>(3)) - 1) / 2;
+            const T G2 = (3 - std::sqrt(static_cast<T>(3))) / 6;
 
             T s = (x + y) * F2;
             auto i = static_cast<std::int32_t>(std::floor(x + s));
@@ -86,13 +86,13 @@ namespace mlnoise
             constexpr T c = 0.5;
 #if 1
             T t0 = c - x0 * x0 - y0 * y0;
-            T n0 = (t0 < 0) ? 0.0 : (t0 * t0 * t0 * t0);
+            T n0 = (t0 < 0) ? 0 : (t0 * t0 * t0 * t0);
 
             T t1 = c - x1 * x1 - y1 * y1;
-            T n1 = (t1 < 0) ? 0.0 : (t1 * t1 * t1 * t1);
+            T n1 = (t1 < 0) ? 0 : (t1 * t1 * t1 * t1);
 
             T t2 = c - x2 * x2 - y2 * y2;
-            T n2 = (t2 < 0) ? 0.0 : (t2 * t2 * t2 * t2);
+            T n2 = (t2 < 0) ? 0 : (t2 * t2 * t2 * t2);
 #else
             T t0 = c - x0 * x0 - y0 * y0;
             T n0 = (t0 < 0) ? 0.0 : (t0 * t0 * t0 * t0) * grad(gi0, x0, y0);

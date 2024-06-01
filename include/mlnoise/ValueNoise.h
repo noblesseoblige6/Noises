@@ -15,7 +15,7 @@ namespace mlnoise
         {
             RandomEngineType gen(seed);
 
-            m_values = detail::RandomTable<T, TableMaxSize>(gen);
+            m_values = detail::RandomTable_11<T, TableMaxSize>(gen);
             m_permutations = detail::PermutationTable<std::uint8_t, TableMaxSize>(gen);
         }
         ~ValueNoise() = default;

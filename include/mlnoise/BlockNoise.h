@@ -15,7 +15,7 @@ namespace mlnoise
         {
             RandomEngineType gen(seed);
 
-            m_values = detail::RandomTable<T, TableMaxSize>(gen);
+            m_values = detail::RandomTable_11<T, TableMaxSize>(gen);
             m_permutations = detail::PermutationTable<std::uint8_t, TableMaxSize>(gen);
         }
         ~BlockNoise() = default;
@@ -27,11 +27,11 @@ namespace mlnoise
             auto const yInt = static_cast<std::int32_t>(std::floor(y));
             auto const zInt = static_cast<std::int32_t>(std::floor(z));
 
-            auto const rx0 = xInt & TableMask;
-            auto const ry0 = yInt & TableMask;
-            auto const rz0 = zInt & TableMask;
+            auto const rx = xInt & TableMask;
+            auto const ry = yInt & TableMask;
+            auto const rz = zInt & TableMask;
 
-            return m_values[m_permutations[m_permutations[m_permutations[rx0] + ry0] + rz0]];
+            return m_values[m_permutations[m_permutations[m_permutations[rx] + ry] + rz]];
         }
 
     private:
