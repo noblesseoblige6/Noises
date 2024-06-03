@@ -140,6 +140,7 @@
     <ClInclude Include="..\..\..\include\mlnoise\ValueNoise.h" />
     <ClInclude Include="..\..\..\include\mlnoise\VoronoiNoise.h" />
     <ClInclude Include="App.h" />
+    <ClInclude Include="bitmap.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
@@ -157,6 +158,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="bitmap.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />

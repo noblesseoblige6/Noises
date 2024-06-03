@@ -63,6 +63,7 @@ namespace app
 
         void UpdateNoise();
         void UpdateNoiseAsync();
+        void SaveNoise();
 
         void UpdateSize();
 
@@ -98,6 +99,8 @@ namespace app
 
         std::float_t m_jittering{ 1.0f };
         std::int32_t m_voronoiOutType{ 0 };
+
+        bool m_canSave{false};
 
         std::unique_ptr<Imgui> m_pImgui{ nullptr };
 

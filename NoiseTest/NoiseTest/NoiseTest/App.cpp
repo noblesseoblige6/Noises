@@ -1,4 +1,5 @@
 #include "App.h"
+#include "bitmap.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
@@ -31,6 +32,12 @@ namespace app
     App::~App()
     {
         SafeRelease(&m_pNoiseTex);
+
+        if (m_pTexBuffer != nullptr)
+        {
+            delete[] m_pTexBuffer;
+            m_pTexBuffer = nullptr;
+        }
 
         m_pImgui.reset();
     }
@@ -125,6 +132,9 @@ namespace app
             isChanged |= ImGui::SliderFloat("Jittering", &m_jittering, 0.0f, 1.0f);
             isChanged |= ImGui::Combo("Out type", &m_voronoiOutType, "Random value\0Min distance\0Min distance 2\0Add min distance 2\0Sub min distance 2\0Mul min distance 2\0Div min distnace 2\0\0");
 
+            ImGui::Text("Misc");
+            m_canSave = ImGui::Button("Save");
+
             ImGui::End();
 
             ImGui::SetNextWindowPos (ImVec2(std::get<0>(m_previewSize), std::get<1>(m_previewSize)));
@@ -140,6 +150,9 @@ namespace app
             //ImGui::ShowDemoWindow(&showDemo);
         }
 
+        if (m_canSave)
+            SaveNoise();
+
         if (isChanged == false)
             return;
 
@@ -151,6 +164,7 @@ namespace app
 
         UpdateSize();
         UpdateNoiseAsync();
+
         m_keptChange = false;
     }
 
@@ -239,6 +253,11 @@ namespace app
         auto const w = static_cast<std::int32_t>(std::get<0>(m_texSize));
         auto const h = static_cast<std::int32_t>(std::get<1>(m_texSize));
 
+        if (m_pTexBuffer != nullptr)
+        {
+            delete[] m_pTexBuffer;
+            m_pTexBuffer = nullptr;
+        }
         m_pTexBuffer = new UINT8[w * h * 4];
 
         switch (static_cast<NoiseType>(m_noiseType))
@@ -298,6 +317,29 @@ namespace app
         m_future = std::async(std::launch::async, [&] { UpdateNoise(); });
     }
 
+    void App::SaveNoise()
+    {
+        auto const w = static_cast<std::uint32_t>(std::get<0>(m_texSize));
+        auto const h = static_cast<std::uint32_t>(std::get<1>(m_texSize));
+
+        bmp::Image image(w, h);
+
+        for (auto j = 0; j < h; j++)
+        {
+            for (auto i = 0; i < w; i++)
+            {
+                auto& color = image.Pixel(i, j);
+                std::uint8_t* pPixelData = m_pTexBuffer + (i + (j * static_cast<std::int32_t>(w))) * 4;
+
+                color.r = pPixelData[0];
+                color.g = pPixelData[1];
+                color.b = pPixelData[2];
+            }
+        }
+
+        bmp::Image::Write("noise.bmp", &image);
+    }
+
     void App::UpdateSize()
     {
         if (m_isResized == false)
@@ -343,9 +385,6 @@ namespace app
 
         SafeRelease(&m_pNoiseTex);
         m_pNoiseTex = m_p3DContext->CreateTexture(w, h, m_pTexBuffer);
-
-        delete[] m_pTexBuffer;
-        m_pTexBuffer = nullptr;
     }
 
     Imgui::Imgui(HWND hWnd, ID3D11Device* pDevice, std::uint32_t buffeFrames, ID3D11DeviceContext* pContext)
