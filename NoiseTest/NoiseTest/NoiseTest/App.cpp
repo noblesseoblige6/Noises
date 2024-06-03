@@ -123,7 +123,7 @@ namespace app
 
             ImGui::Text("Voronoi");
             isChanged |= ImGui::SliderFloat("Jittering", &m_jittering, 0.0f, 1.0f);
-            isChanged |= ImGui::Combo("Out type", &m_voronoiOutType, "Min distance\0Min distance 2\0Add min distance 2\0Sub min distance 2\0Mul min distance 2\0Div min distnace 2\0\0");
+            isChanged |= ImGui::Combo("Out type", &m_voronoiOutType, "Random value\0Min distance\0Min distance 2\0Add min distance 2\0Sub min distance 2\0Mul min distance 2\0Div min distnace 2\0\0");
 
             ImGui::End();
 

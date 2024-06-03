@@ -6,7 +6,8 @@ namespace mlnoise
 {
     enum class VoronoiOut
     {
-        MinDistance = 0,
+        RandomValue = 0,
+        MinDistance,
         MinDistance2,
         AddMinDistance2,
         SubMinDistance2,
@@ -44,6 +45,7 @@ namespace mlnoise
 
             auto minDis = (std::numeric_limits<T>::max)();
             auto minDis2 = minDis;
+            T minValue = 0;
             for (auto ix = -1; ix <= 1; ++ix)
             {
                 for (auto iy = -1; iy <= 1; ++iy)
@@ -69,24 +71,28 @@ namespace mlnoise
                         auto const ry = (yInt + iy) & TableMask;
                         auto const rz = (zInt + iz) & TableMask;
 
-                        auto const dx = m_values[m_permutations[m_permutations[m_permutations[rx] + ry] + rz]] * m_jittering;
-                        auto const dy = dx;//detail::Remap_01(m_values[m_permutations[m_permutations[m_permutations[rx] + ry] + rz]]);
-                        auto const dz = dx;//detail::Remap_01(m_values[m_permutations[m_permutations[m_permutations[rx] + ry] + rz]]);
+                        auto const dx = m_values[m_permutations[m_permutations[m_permutations[rx] + ry] + rz]];
+                        auto const dy = m_values[m_permutations[m_permutations[m_permutations[ry] + rz] + rx]];
+                        auto const dz = m_values[m_permutations[m_permutations[m_permutations[rz] + rx] + ry]];
 
-                        auto const vecx = (ix + dx) - xFract;
-                        auto const vecy = (iy + dy) - yFract;
-                        auto const vecz = (iz + dz) - zFract;
+                        auto const vecx = (ix + dx * m_jittering) - xFract;
+                        auto const vecy = (iy + dy * m_jittering) - yFract;
+                        auto const vecz = (iz + dz * m_jittering) - zFract;
 
                         auto const dis = vecx * vecx + vecy * vecy + vecz * vecz;
 
                         minDis2 = (std::max)((std::min)(minDis2, dis), minDis);
-                        minDis = (std::min)(minDis, dis);
+                        if (dis < minDis)
+                        {
+                            minDis = dis;
+                            minValue = (dx+dy+dz)/3;
+                        }
                     }
 #endif
                 }
             }
 
-            return detail::Remap_11(OutValue(minDis, minDis2));
+            return OutValue(minDis, minDis2, minValue);
         }
 
         T GetJittering() const { return m_jittering; }
@@ -96,11 +102,16 @@ namespace mlnoise
         void SetOutType(VoronoiOut outType) { m_outType = outType; }
 
         private:
-            T OutValue(T min, T min2)
+            T OutValue(T min, T min2, T minVal)
             {
                 T res = 0;
                 switch (m_outType)
                 {
+                case mlnoise::VoronoiOut::MinDistance:
+                {
+                    res = std::sqrt(min / 3);
+                }
+                break;
                 case mlnoise::VoronoiOut::MinDistance2:
                 {
                     res = std::sqrt(min2 / 3);
@@ -114,30 +125,27 @@ namespace mlnoise
                 case mlnoise::VoronoiOut::SubMinDistance2:
                 {
                     res = std::sqrt((min2 - min) / 3);
-
                 }
                 break;
                 case mlnoise::VoronoiOut::MulMinDistance2:
                 {
                     res = std::sqrt((min2 * min) / 3);
-
                 }
                 break;
                 case mlnoise::VoronoiOut::DivMinDistance2:
                 {
                     res = std::sqrt((min / min2));
-
                 }
                 break;
-                case mlnoise::VoronoiOut::MinDistance:
+                case mlnoise::VoronoiOut::RandomValue:
                 default:
                 {
-                    res = std::sqrt(min / 3);
+                    res = minVal;
                 }
                 break;
                 }
 
-                return res;
+                return detail::Remap_11(res);
             }
 
     private:
