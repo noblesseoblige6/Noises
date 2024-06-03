@@ -99,6 +99,9 @@ namespace app
         std::float_t m_jittering{ 1.0f };
         std::int32_t m_voronoiOutType{ 0 };
 
+        bool m_isDisableSmoothstep{ false };
+        bool m_isDisableVoronoi{false};
+
         std::unique_ptr<Imgui> m_pImgui{ nullptr };
 
         std::unique_ptr <D3DContext> m_p3DContext{ nullptr };

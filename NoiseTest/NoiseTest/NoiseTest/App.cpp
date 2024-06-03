@@ -113,17 +113,30 @@ namespace app
             ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
 
             isChanged |= ImGui::Combo("Noise", &m_noiseType, "Block\0Value\0Perlin\0Simplex\0Voronoi\0\0");
+            m_isDisableSmoothstep = m_noiseType != NoiseType::Value && m_noiseType != NoiseType::Perlin;
+            m_isDisableVoronoi = m_noiseType != NoiseType::Voronoi;
+
             isChanged |= ImGui::SliderFloat("Frequency", &m_frequency, 0.005f, 1.f);
             isChanged |= ImGui::SliderInt("Seed", &m_seed, 0, 4096);
-            isChanged |= ImGui::Combo("SmoothStep", &m_smopthStepType, "Quintic\0Cubic\0Linear\0\0");
+
+            ImGui::BeginDisabled(m_isDisableSmoothstep);
+            {
+                isChanged |= ImGui::Combo("SmoothStep", &m_smopthStepType, "Quintic\0Cubic\0Linear\0\0");
+            }
+            ImGui::EndDisabled();
+
             ImGui::Text("Fractal");
             isChanged |= ImGui::SliderInt("Octave", &m_octave, 1, 8);
             isChanged |= ImGui::SliderFloat("Persistence", &m_persistence, 0.0f, 1.0f);
             isChanged |= ImGui::SliderFloat("Lacunarity", &m_lacunarity, 0.0f, 5.0f);
 
             ImGui::Text("Voronoi");
-            isChanged |= ImGui::SliderFloat("Jittering", &m_jittering, 0.0f, 1.0f);
-            isChanged |= ImGui::Combo("Out type", &m_voronoiOutType, "Min distance\0Min distance 2\0Add min distance 2\0Sub min distance 2\0Mul min distance 2\0Div min distnace 2\0\0");
+            ImGui::BeginDisabled(m_isDisableVoronoi);
+            {
+                isChanged |= ImGui::SliderFloat("Jittering", &m_jittering, 0.0f, 1.0f);
+                isChanged |= ImGui::Combo("Out type", &m_voronoiOutType, "Min distance\0Min distance 2\0Add min distance 2\0Sub min distance 2\0Mul min distance 2\0Div min distnace 2\0\0");
+            }
+            ImGui::EndDisabled();
 
             ImGui::End();
 
