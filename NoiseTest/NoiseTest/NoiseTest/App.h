@@ -63,6 +63,7 @@ namespace app
 
         void UpdateNoise();
         void UpdateNoiseAsync();
+        void SaveNoise();
 
         void UpdateSize();
 
@@ -101,6 +102,8 @@ namespace app
 
         bool m_isDisableSmoothstep{ false };
         bool m_isDisableVoronoi{false};
+
+        bool m_canSave{false};
 
         std::unique_ptr<Imgui> m_pImgui{ nullptr };
 
