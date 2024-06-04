@@ -20,6 +20,7 @@ namespace bmp
         };
 
     public:
+        Image() = delete;
         Image(std::uint32_t w, std::uint32_t h);
         ~Image();
 

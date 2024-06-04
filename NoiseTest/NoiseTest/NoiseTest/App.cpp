@@ -336,7 +336,6 @@ namespace app
         auto const h = static_cast<std::uint32_t>(std::get<1>(m_texSize));
 
         bmp::Image image(w, h);
-
         for (auto j = 0; j < h; j++)
         {
             for (auto i = 0; i < w; i++)
