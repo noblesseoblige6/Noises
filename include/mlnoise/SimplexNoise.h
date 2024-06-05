@@ -41,7 +41,7 @@ namespace mlnoise
     public:
         std::tuple<T, T, T> Test(T x, T y)
         {
-            // Skew the input space to determine which simplex cell we're in
+            // skew the input coordinations in Euclid space to ones in skewed space
             const T F2 = (std::sqrt(static_cast<T>(3)) - 1) / 2;
             const T G2 = (3 - std::sqrt(static_cast<T>(3))) / 6;
 
@@ -49,26 +49,23 @@ namespace mlnoise
             auto i = static_cast<std::int32_t>(std::floor(x + s));
             auto j = static_cast<std::int32_t>(std::floor(y + s));
 
-            // Unskew the cell origin back to (x,y) space
+            // unskew the cell origin back to Euclid space
             T t = (i + j) * G2;
             T X0 = i - t;
             T Y0 = j - t;
 
-            // The x,y distances from the cell origin
+            // find delta along x,y from the origin
             T x0 = x - X0;
             T y0 = y - Y0;
 
-            std::int32_t i1, j1;
-            // lower triangle
-            if (x0 > y0) 
-            {
-                i1 = 1; j1 = 0;
-            }
-            // uppper triangle
-            else
-            {
-                i1 = 0; j1 = 1;
-            }
+            std::int32_t i1 = 0, j1 = 0;
+            // the lower triangle when x0 is greater than y0. uppper triangle on the other hand.
+            (x0 > y0) ? i1 = 1 : j1 = 1;
+
+            // find delta along x, y from neighbor vertices.
+            // ex.) consider the triangle composed of (i, j), (i+1, j), (i+1, j+1)
+            // X1 = (i + 1) - ({i+1} + j) * G2, X2 = (i + 1) - ({i+1} + {j+1}) * G2,
+            // x1 = x - X1 = x0 - 1 + G2, x2 = x - X2 = x0 - 1 + G2
 
             auto x1 = (x0 - i1) + G2;
             auto y1 = (y0 - j1) + G2;
