@@ -69,6 +69,7 @@ std::tuple<T, T, T> SquareInterpolate(T x, T y)
     T t2 = c - x0 * x0 - y1 * y1;
     T t3 = c - x1 * x1 - y1 * y1;
 
+    // (x-min)/(max-min)
     return { x, y, ((t0 + t1 + t2 + t3) - 4) / 2};
 }
 
@@ -106,14 +107,15 @@ std::tuple<T, T, T> TriangleInterpolate(T x, T y, bool& isInTriangle)
     T x2 = x - X2;
     T y2 = y - Y2;
 
-    //constexpr T c = 3/static_cast<T>(4);
     constexpr T c = 1;
+    //constexpr T c = 3/static_cast<T>(4);
     //constexpr T c = 1/ static_cast<T>(2);
     T t0 = c - x0 * x0 - y0 * y0;
     T t1 = c - x1 * x1 - y1 * y1;
     T t2 = c - x2 * x2 - y2 * y2;
 
-    return { x, y, t0 + t1 + t2 };
+    // (x-min)/(max-min)
+    return { x, y, t0+t1+t2 - 1};
 }
 
 template<class T>
