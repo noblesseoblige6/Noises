@@ -48,6 +48,75 @@ std::pair<T, T> Unskew(T i, T j)
 }
 
 template<class T>
+std::tuple<T, T, T> SquareInterpolate(T x, T y)
+{
+    auto X0 = std::floor(x);
+    auto Y0 = std::floor(y);
+    auto X1 = X0 + 1;
+    auto Y1 = Y0 + 1;
+
+    x -= X0;
+    y -= Y0;
+
+    T x0 = x - X0;
+    T y0 = y - Y0;
+    T x1 = x - X1;
+    T y1 = y - Y1;
+
+    constexpr T c = 2;
+    T t0 = c - x0 * x0 - y0 * y0;
+    T t1 = c - x1 * x1 - y0 * y0;
+    T t2 = c - x0 * x0 - y1 * y1;
+    T t3 = c - x1 * x1 - y1 * y1;
+
+    return { x, y, ((t0 + t1 + t2 + t3) - 4) / 2};
+}
+
+template<class T>
+bool IsLeftSide(std::pair<T, T> a, std::pair<T, T> b)
+{
+    return (a.first * b.second - a.second * b.first) >= 0;
+}
+
+template<class T>
+std::tuple<T, T, T> TriangleInterpolate(T x, T y, bool& isInTriangle)
+{
+    auto X0 = std::floor(x);
+    auto Y0 = std::floor(y);
+    auto X1 = X0 + 1;
+    auto Y1 = Y0;
+    auto X2 = X0 + 1/static_cast<T>(2);
+    auto Y2 = Y0 + std::sqrt(3)/ static_cast<T>(2);
+
+    auto v0 = std::pair<T, T>(X1 - X0, Y1 - Y0);
+    auto v1 = std::pair<T, T>(X2 - X1, Y2 - Y1);
+    auto v2 = std::pair<T, T>(X0 - X2, Y0 - Y2);
+
+    if (!IsLeftSide(v0, std::pair<T, T>(x - X0, y - Y0)) ||
+        !IsLeftSide(v1, std::pair<T, T>(x - X1, y - Y1)) ||
+        !IsLeftSide(v2, std::pair<T, T>(x - X2, y - Y2)))
+        isInTriangle = false;
+
+    T x0 = x - X0;
+    T y0 = y - Y0;
+
+    T x1 = x - X1;
+    T y1 = y - Y1;
+
+    T x2 = x - X2;
+    T y2 = y - Y2;
+
+    //constexpr T c = 3/static_cast<T>(4);
+    constexpr T c = 1;
+    //constexpr T c = 1/ static_cast<T>(2);
+    T t0 = c - x0 * x0 - y0 * y0;
+    T t1 = c - x1 * x1 - y1 * y1;
+    T t2 = c - x2 * x2 - y2 * y2;
+
+    return { x, y, t0 + t1 + t2 };
+}
+
+template<class T>
 std::tuple<T, T, T> SimplexInterpolate(T x, T y, bool& isInTrianle)
 {
     const T F2 = (std::sqrt(3) - 1) / static_cast<T>(2);
@@ -67,7 +136,7 @@ std::tuple<T, T, T> SimplexInterpolate(T x, T y, bool& isInTrianle)
 
     std::int32_t i1 = 0, j1 = 0;
     (x0 > y0) ? i1 = 1 : j1 = 1;
-    if (x+s < y+s)
+    if (x + s < y + s)
         isInTrianle = false;
 
     auto x1 = (x0 - i1) + G2;
@@ -80,7 +149,7 @@ std::tuple<T, T, T> SimplexInterpolate(T x, T y, bool& isInTrianle)
     T t1 = c - x1 * x1 - y1 * y1;
     T t2 = c - x2 * x2 - y2 * y2;
 
-    return { x + s, y + s, t1};
+    return { x, y, t0 + t1 + t2 };
 }
 
 TEST_SUITE("Util")
@@ -133,7 +202,6 @@ TEST_SUITE("Plot")
     {
         std::ofstream skew_ofs  ("./plotData/skew.dat");
         std::ofstream unskew_ofs("./plotData/unskew.dat");
-        std::ofstream interp_ofs("./plotData/simplex_interp.dat");
 
         for (auto y = 0; y < 32; ++y)
         {
@@ -145,26 +213,87 @@ TEST_SUITE("Plot")
 
                 skew_ofs << skewed.first << " " << skewed.second << std::endl;
                 unskew_ofs << unskewed.first << " " << unskewed.second << std::endl;
+            }
+        }
+    }
 
-                bool isInLowerTriangle = true;
-                auto interp = SimplexInterpolate(static_cast<std::float_t>(x/32.f), static_cast<std::float_t>(y/32.f), isInLowerTriangle);
-                if (isInLowerTriangle)
+    TEST_CASE("Square Inteprolation")
+    {
+        std::ofstream ofs("./plotData/square_interp.dat");
+
+        auto div = 50;
+        for (auto y = 0; y < div; ++y)
+        {
+            for (auto x = 0; x < div; ++x)
+            {
+                auto interp = SquareInterpolate(static_cast<std::float_t>(x / div), static_cast<std::float_t>(y / div));
+                ofs << std::get<0>(interp) << " " << std::get<1>(interp) << " " << std::get<2>(interp) << std::endl;
+            }
+            ofs << std::endl;
+        }
+    }
+
+    TEST_CASE("Triangle Inteprolation")
+    {
+        std::ofstream ofs("./plotData/tri_interp.dat");
+
+        auto div = 50;
+        for (auto y = 0; y < div; ++y)
+        {
+            bool canNewLine = false;
+            for (auto x = 0; x < div; ++x)
+            {
+                auto isInTriangle = true;
+                auto interp = TriangleInterpolate(static_cast<std::float_t>(x) / div, static_cast<std::float_t>(y) / div, isInTriangle);
+                if (isInTriangle)
                 {
-                    interp_ofs << std::get<0>(interp) << " " << std::get<1>(interp) << " " << std::get<2>(interp) << std::endl;
+                    ofs << std::get<0>(interp) << " " << std::get<1>(interp) << " " << std::get<2>(interp) << std::endl;
                     canNewLine = true;
                 }
                 else
                 {
                     if (canNewLine)
                     {
-                        interp_ofs << std::endl;
+                        ofs << std::endl;
                         canNewLine = false;
                     }
                 }
             }
 
-            if(canNewLine)
-                interp_ofs << std::endl;
+            if (canNewLine)
+                ofs << std::endl;
+        }
+    }
+
+    TEST_CASE("Simplex Inteprolation")
+    {
+        std::ofstream ofs("./plotData/simplex_interp.dat");
+
+        auto div = 50;
+        for (auto y = 0; y < div; ++y)
+        {
+            bool canNewLine = false;
+            for (auto x = 0; x < div; ++x)
+            {
+                bool isInLowerTriangle = true;
+                auto interp = SimplexInterpolate(static_cast<std::float_t>(x / 32.f), static_cast<std::float_t>(y / 32.f), isInLowerTriangle);
+                if (isInLowerTriangle)
+                {
+                    ofs << std::get<0>(interp) << " " << std::get<1>(interp) << " " << std::get<2>(interp) << std::endl;
+                    canNewLine = true;
+                }
+                else
+                {
+                    if (canNewLine)
+                    {
+                        ofs << std::endl;
+                        canNewLine = false;
+                    }
+                }
+            }
+
+            if (canNewLine)
+                ofs << std::endl;
         }
     }
 
