@@ -1,4 +1,6 @@
 ﻿#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <numeric>
+
 #include "doctest.h"
 #include "bitmap.h"
 
@@ -63,14 +65,38 @@ std::tuple<T, T, T> SquareInterpolate(T x, T y)
     T x1 = x - X1;
     T y1 = y - Y1;
 
-    constexpr T c = 2;
+    constexpr T c = 2; // square length of diagonal of the squere
     T t0 = c - x0 * x0 - y0 * y0;
     T t1 = c - x1 * x1 - y0 * y0;
     T t2 = c - x0 * x0 - y1 * y1;
     T t3 = c - x1 * x1 - y1 * y1;
 
-    // (x-min)/(max-min)
-    return { x, y, ((t0 + t1 + t2 + t3) - 4) / 2};
+    // (x, y) is in the middle of the square
+    T x_mid = 0.5, y_mid = 0.5;
+    std::array<T, 4> t_max =
+    {
+        c - x_mid * x_mid - y_mid * y_mid,
+        c - x_mid * x_mid - y_mid * y_mid,
+        c - x_mid * x_mid - y_mid * y_mid,
+        c - x_mid * x_mid - y_mid * y_mid,
+    };
+
+    // (x, y) is at the corner of left bottom
+    std::array<T, 4> t_min =
+    {
+        c - 0 - 0,
+        c - 1 - 0,
+        c - 0 - 1,
+        c - 1 - 1,
+    };
+
+    T res = t0 + t1 + t2 + t3;
+
+    // normalize the value in [0, 1] by (v-min)/(max-min)
+    T max = std::accumulate(t_max.begin(), t_max.end(), static_cast<T>(0));
+    T min = std::accumulate(t_min.begin(), t_min.end(), static_cast<T>(0));
+
+    return { x, y, (res - min) / (max - min) };
 }
 
 template<class T>
@@ -93,6 +119,7 @@ std::tuple<T, T, T> TriangleInterpolate(T x, T y, bool& isInTriangle)
     auto v1 = std::pair<T, T>(X2 - X1, Y2 - Y1);
     auto v2 = std::pair<T, T>(X0 - X2, Y0 - Y2);
 
+    // check if the point in the triangle
     if (!IsLeftSide(v0, std::pair<T, T>(x - X0, y - Y0)) ||
         !IsLeftSide(v1, std::pair<T, T>(x - X1, y - Y1)) ||
         !IsLeftSide(v2, std::pair<T, T>(x - X2, y - Y2)))
@@ -107,15 +134,37 @@ std::tuple<T, T, T> TriangleInterpolate(T x, T y, bool& isInTriangle)
     T x2 = x - X2;
     T y2 = y - Y2;
 
-    constexpr T c = 1;
-    //constexpr T c = 3/static_cast<T>(4);
-    //constexpr T c = 1/ static_cast<T>(2);
+    constexpr T c = 3/static_cast<T>(4);
     T t0 = c - x0 * x0 - y0 * y0;
     T t1 = c - x1 * x1 - y1 * y1;
     T t2 = c - x2 * x2 - y2 * y2;
 
-    // (x-min)/(max-min)
-    return { x, y, t0+t1+t2 - 1};
+    T res = t0 + t1 + t2;
+
+    // (x, y) is in the middle of the triangle
+    T r = 1 / std::sqrt(3);
+    std::array<T, 3> t_max =
+    {
+        c - r * r,
+        c - r * r,
+        c - r * r,
+    };
+
+    // (x, y) is at the corner of left bottom
+    T x_top = 0.5f;
+    T y_top = std::sqrt(3) * 0.5;
+    std::array<T, 3> t_min =
+    {
+        c - 0 - 0,
+        c - 1 - 0,
+        c - x_top * x_top - y_top * y_top,
+    };
+
+    // normalize the value in [0, 1] by (v-min)/(max-min)
+    T max = std::accumulate(t_max.begin(), t_max.end(), static_cast<T>(0));
+    T min = std::accumulate(t_min.begin(), t_min.end(), static_cast<T>(0));
+
+    return { x, y, (res - min ) / (max - min)};
 }
 
 template<class T>
@@ -138,8 +187,6 @@ std::tuple<T, T, T> SimplexInterpolate(T x, T y, bool& isInTrianle)
 
     std::int32_t i1 = 0, j1 = 0;
     (x0 > y0) ? i1 = 1 : j1 = 1;
-    if (x + s < y + s)
-        isInTrianle = false;
 
     auto x1 = (x0 - i1) + G2;
     auto y1 = (y0 - j1) + G2;
@@ -151,7 +198,50 @@ std::tuple<T, T, T> SimplexInterpolate(T x, T y, bool& isInTrianle)
     T t1 = c - x1 * x1 - y1 * y1;
     T t2 = c - x2 * x2 - y2 * y2;
 
-    return { x, y, t0 + t1 + t2 };
+#if 0
+    T n0 = (t0 < 0) ? 0 : (t0 * t0 * t0 * t0)*2;
+    T n1 = (t1 < 0) ? 0 : (t1 * t1 * t1 * t1)*2;
+    T n2 = (t2 < 0) ? 0 : (t2 * t2 * t2 * t2)*2;
+
+    auto res = n0 + n1 + n2;
+
+    T r = std::sqrt(2) / 3;
+    T max = 3 * (c - r * r);
+    T min = c;
+
+    return { x, y,  res * 70.f };
+
+#else
+    auto res = t0 + t1 + t2;
+
+    // (x, y) is in the middle of the triangle
+    T r = std::sqrt(2) / 3;
+    std::array<T, 3> t_max =
+    {
+        c - r * r,
+        c - r * r,
+        c - r * r,
+    };
+
+    // (x, y) is at the corner of left bottom
+    T v = (3 - std::sqrt(3)) / 6.f;
+    T x1_top = 1 - v;
+    T y1_top = -v;
+    T x2_top = 1 - 2 * v;
+    T y2_top = 1 - 2 * v;
+    std::array<T, 3> t_min =
+    {
+        c - 0 - 0,
+        c - x1_top * x1_top - y1_top * y1_top,
+        c - x2_top * x2_top - y2_top * y2_top,
+    };
+
+    // normalize the value in [0, 1] by (v-min)/(max-min)
+    T max = std::accumulate(t_max.begin(), t_max.end(), static_cast<T>(0));
+    T min = std::accumulate(t_min.begin(), t_min.end(), static_cast<T>(0));
+
+#endif
+    return { x, y,  (res - min) / (max - min) };
 }
 
 TEST_SUITE("Util")
@@ -205,12 +295,12 @@ TEST_SUITE("Plot")
         std::ofstream skew_ofs  ("./plotData/skew.dat");
         std::ofstream unskew_ofs("./plotData/unskew.dat");
 
-        for (auto y = 0; y < 32; ++y)
+        auto div = 32;
+        for (auto y = 0; y < div; ++y)
         {
-            bool canNewLine = false;
-            for (auto x = 0; x < 32; ++x)
+            for (auto x = 0; x < div; ++x)
             {
-                auto skewed = Skew(static_cast<std::float_t>(x/32.f), static_cast<std::float_t>(y/32.f));
+                auto skewed = Skew(static_cast<std::float_t>(x), static_cast<std::float_t>(y));
                 auto unskewed = Unskew(static_cast<std::float_t>(skewed.first), static_cast<std::float_t>(skewed.second));
 
                 skew_ofs << skewed.first << " " << skewed.second << std::endl;
@@ -221,17 +311,17 @@ TEST_SUITE("Plot")
 
     TEST_CASE("Square Inteprolation")
     {
-        std::ofstream ofs("./plotData/square_interp.dat");
+        std::ofstream fout("./plotData/square_interp.dat");
 
-        auto div = 50;
+        auto div = 100;
         for (auto y = 0; y < div; ++y)
         {
             for (auto x = 0; x < div; ++x)
             {
-                auto interp = SquareInterpolate(static_cast<std::float_t>(x / div), static_cast<std::float_t>(y / div));
-                ofs << std::get<0>(interp) << " " << std::get<1>(interp) << " " << std::get<2>(interp) << std::endl;
+                auto interp = SquareInterpolate(static_cast<std::float_t>(x) / div, static_cast<std::float_t>(y) / div);
+                fout << std::get<0>(interp) << " " << std::get<1>(interp) << " " << std::get<2>(interp) << std::endl;
             }
-            ofs << std::endl;
+            fout << std::endl;
         }
     }
 
@@ -239,11 +329,11 @@ TEST_SUITE("Plot")
     {
         std::ofstream ofs("./plotData/tri_interp.dat");
 
-        auto div = 50;
-        for (auto y = 0; y < div; ++y)
+        auto div = 100;
+        for (auto x = 0; x < div; ++x)
         {
             bool canNewLine = false;
-            for (auto x = 0; x < div; ++x)
+            for (auto y = 0; y < div; ++y)
             {
                 auto isInTriangle = true;
                 auto interp = TriangleInterpolate(static_cast<std::float_t>(x) / div, static_cast<std::float_t>(y) / div, isInTriangle);
@@ -271,14 +361,14 @@ TEST_SUITE("Plot")
     {
         std::ofstream ofs("./plotData/simplex_interp.dat");
 
-        auto div = 50;
+        auto div = 100;
         for (auto y = 0; y < div; ++y)
         {
             bool canNewLine = false;
             for (auto x = 0; x < div; ++x)
             {
                 bool isInLowerTriangle = true;
-                auto interp = SimplexInterpolate(static_cast<std::float_t>(x / 32.f), static_cast<std::float_t>(y / 32.f), isInLowerTriangle);
+                auto interp = SimplexInterpolate(static_cast<std::float_t>(x) / 32.f, static_cast<std::float_t>(y) / 32.f, isInLowerTriangle);
                 if (isInLowerTriangle)
                 {
                     ofs << std::get<0>(interp) << " " << std::get<1>(interp) << " " << std::get<2>(interp) << std::endl;
