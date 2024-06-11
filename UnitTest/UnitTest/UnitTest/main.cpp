@@ -139,6 +139,19 @@ std::tuple<T, T, T> TriangleInterpolate(T x, T y, bool& isInTriangle)
     T t1 = c - x1 * x1 - y1 * y1;
     T t2 = c - x2 * x2 - y2 * y2;
 
+#if 0
+    T n0 = (t0 < 0) ? 0 : (t0 * t0 * t0 * t0) * 2;
+    T n1 = (t1 < 0) ? 0 : (t1 * t1 * t1 * t1) * 2;
+    T n2 = (t2 < 0) ? 0 : (t2 * t2 * t2 * t2) * 2;
+
+    T r = 1 / std::sqrt(3);
+    T max = (c - r * r);
+    max = 2 * max * max * max * max;
+    max = 1 / (max + max + max);
+
+    auto res = n0 + n1 + n2;
+    return { x, y,  res * max };
+#else
     T res = t0 + t1 + t2;
 
     // (x, y) is in the middle of the triangle
@@ -165,6 +178,7 @@ std::tuple<T, T, T> TriangleInterpolate(T x, T y, bool& isInTriangle)
     T min = std::accumulate(t_min.begin(), t_min.end(), static_cast<T>(0));
 
     return { x, y, (res - min ) / (max - min)};
+#endif
 }
 
 template<class T>
@@ -199,18 +213,17 @@ std::tuple<T, T, T> SimplexInterpolate(T x, T y, bool& isInTrianle)
     T t2 = c - x2 * x2 - y2 * y2;
 
 #if 0
-    T n0 = (t0 < 0) ? 0 : (t0 * t0 * t0 * t0)*2;
-    T n1 = (t1 < 0) ? 0 : (t1 * t1 * t1 * t1)*2;
-    T n2 = (t2 < 0) ? 0 : (t2 * t2 * t2 * t2)*2;
-
-    auto res = n0 + n1 + n2;
+    T n0 = (t0 < 0) ? 0 : (t0 * t0 * t0 * t0) * 2;
+    T n1 = (t1 < 0) ? 0 : (t1 * t1 * t1 * t1) * 2;
+    T n2 = (t2 < 0) ? 0 : (t2 * t2 * t2 * t2) * 2;
 
     T r = std::sqrt(2) / 3;
-    T max = 3 * (c - r * r);
-    T min = c;
+    T max = c;
+    max = 2 * (max * max * max * max);
+    max = 1 / (max + max + max);
 
-    return { x, y,  res * 70.f };
-
+    auto res = n0 + n1 + n2;
+    return { x, y,  res * max};
 #else
     auto res = t0 + t1 + t2;
 
@@ -224,11 +237,10 @@ std::tuple<T, T, T> SimplexInterpolate(T x, T y, bool& isInTrianle)
     };
 
     // (x, y) is at the corner of left bottom
-    T v = (3 - std::sqrt(3)) / 6.f;
-    T x1_top = 1 - v;
-    T y1_top = -v;
-    T x2_top = 1 - 2 * v;
-    T y2_top = 1 - 2 * v;
+    T x1_top = 1 - G2;
+    T y1_top = -G2;
+    T x2_top = 1 - 2 * G2;
+    T y2_top = 1 - 2 * G2;
     std::array<T, 3> t_min =
     {
         c - 0 - 0,
@@ -240,8 +252,8 @@ std::tuple<T, T, T> SimplexInterpolate(T x, T y, bool& isInTrianle)
     T max = std::accumulate(t_max.begin(), t_max.end(), static_cast<T>(0));
     T min = std::accumulate(t_min.begin(), t_min.end(), static_cast<T>(0));
 
-#endif
     return { x, y,  (res - min) / (max - min) };
+#endif
 }
 
 TEST_SUITE("Util")
@@ -318,7 +330,7 @@ TEST_SUITE("Plot")
         {
             for (auto x = 0; x < div; ++x)
             {
-                auto interp = SquareInterpolate(static_cast<std::float_t>(x) / div, static_cast<std::float_t>(y) / div);
+                auto interp = SquareInterpolate(static_cast<std::double_t>(x) / div, static_cast<std::double_t>(y) / div);
                 fout << std::get<0>(interp) << " " << std::get<1>(interp) << " " << std::get<2>(interp) << std::endl;
             }
             fout << std::endl;
@@ -336,7 +348,7 @@ TEST_SUITE("Plot")
             for (auto y = 0; y < div; ++y)
             {
                 auto isInTriangle = true;
-                auto interp = TriangleInterpolate(static_cast<std::float_t>(x) / div, static_cast<std::float_t>(y) / div, isInTriangle);
+                auto interp = TriangleInterpolate(static_cast<std::double_t>(x) / div, static_cast<std::double_t>(y) / div, isInTriangle);
                 if (isInTriangle)
                 {
                     ofs << std::get<0>(interp) << " " << std::get<1>(interp) << " " << std::get<2>(interp) << std::endl;
@@ -368,7 +380,7 @@ TEST_SUITE("Plot")
             for (auto x = 0; x < div; ++x)
             {
                 bool isInLowerTriangle = true;
-                auto interp = SimplexInterpolate(static_cast<std::float_t>(x) / 32.f, static_cast<std::float_t>(y) / 32.f, isInLowerTriangle);
+                auto interp = SimplexInterpolate(static_cast<std::double_t>(x) / 32.f, static_cast<std::double_t>(y) / 32.f, isInLowerTriangle);
                 if (isInLowerTriangle)
                 {
                     ofs << std::get<0>(interp) << " " << std::get<1>(interp) << " " << std::get<2>(interp) << std::endl;
