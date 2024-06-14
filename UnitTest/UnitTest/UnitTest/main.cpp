@@ -139,6 +139,11 @@ std::tuple<T, T, T> TriangleInterpolate(T x, T y, bool& isInTriangle)
     T t1 = c - x1 * x1 - y1 * y1;
     T t2 = c - x2 * x2 - y2 * y2;
 
+    // clamp the influence in the range of the circle
+    t0 = t0 < 0 ? 0 : t0;
+    t1 = t1 < 0 ? 0 : t1;
+    t2 = t2 < 0 ? 0 : t2;
+
 #if 0
     T n0 = (t0 < 0) ? 0 : (t0 * t0 * t0 * t0) * 2;
     T n1 = (t1 < 0) ? 0 : (t1 * t1 * t1 * t1) * 2;
@@ -169,15 +174,17 @@ std::tuple<T, T, T> TriangleInterpolate(T x, T y, bool& isInTriangle)
     std::array<T, 3> t_min =
     {
         c - 0 - 0,
-        c - 1 - 0,
-        c - x_top * x_top - y_top * y_top,
+        0, //c - 1 - 0,
+        0, //c - x_top * x_top - y_top * y_top,
     };
 
     // normalize the value in [0, 1] by (v-min)/(max-min)
     T max = std::accumulate(t_max.begin(), t_max.end(), static_cast<T>(0));
-    T min = std::accumulate(t_min.begin(), t_min.end(), static_cast<T>(0));
+    //T min = std::accumulate(t_min.begin(), t_min.end(), static_cast<T>(0));
+    T min = 0.725656;
 
     return { x, y, (res - min ) / (max - min)};
+    //return { x, y, res };
 #endif
 }
 
@@ -213,18 +220,25 @@ std::tuple<T, T, T> SimplexInterpolate(T x, T y, bool& isInTrianle)
     T t2 = c - x2 * x2 - y2 * y2;
 
 #if 0
-    T n0 = (t0 < 0) ? 0 : (t0 * t0 * t0 * t0) * 2;
-    T n1 = (t1 < 0) ? 0 : (t1 * t1 * t1 * t1) * 2;
-    T n2 = (t2 < 0) ? 0 : (t2 * t2 * t2 * t2) * 2;
+    T n0 = /*(t0 < 0) ? 0 :*/ (t0 * t0 * t0 * t0);
+    T n1 = /*(t1 < 0) ? 0 :*/ (t1 * t1 * t1 * t1);
+    T n2 = /*(t2 < 0) ? 0 :*/ (t2 * t2 * t2 * t2);
 
     T r = std::sqrt(2) / 3;
-    T max = c;
-    max = 2 * (max * max * max * max);
-    max = 1 / (max + max + max);
+    T max = (c - r * r);
+    max = max * max * max * max;
+    //max = 1 / (3 * max);
+
+    if (n0 + n1 + n2 > 3 * max)
+        std::cout << "Unexpected" << std::endl;
 
     auto res = n0 + n1 + n2;
-    return { x, y,  res * max};
+    return { x, y,  res};
 #else
+    t0 = (t0 < 0) ? 0 : t0;
+    t1 = (t1 < 0) ? 0 : t1;
+    t2 = (t2 < 0) ? 0 : t2;
+
     auto res = t0 + t1 + t2;
 
     // (x, y) is in the middle of the triangle
