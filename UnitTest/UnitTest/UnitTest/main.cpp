@@ -140,52 +140,19 @@ std::tuple<T, T, T> TriangleInterpolate(T x, T y, bool& isInTriangle)
     T t2 = c - x2 * x2 - y2 * y2;
 
     // clamp the influence in the range of the circle
-    t0 = t0 < 0 ? 0 : t0;
-    t1 = t1 < 0 ? 0 : t1;
-    t2 = t2 < 0 ? 0 : t2;
+    t0 = t0 < 0 ? 0 : (t0 * t0 * t0 * t0);
+    t1 = t1 < 0 ? 0 : (t1 * t1 * t1 * t1);
+    t2 = t2 < 0 ? 0 : (t2 * t2 * t2 * t2);
 
-#if 0
-    T n0 = (t0 < 0) ? 0 : (t0 * t0 * t0 * t0) * 2;
-    T n1 = (t1 < 0) ? 0 : (t1 * t1 * t1 * t1) * 2;
-    T n2 = (t2 < 0) ? 0 : (t2 * t2 * t2 * t2) * 2;
+    auto res = t0 + t1 + t2;
 
-    T r = 1 / std::sqrt(3);
-    T max = (c - r * r);
-    max = 2 * max * max * max * max;
-    max = 1 / (max + max + max);
+    // normalize the value in [-1, 1]
+    // max value in t(x, y) = (c-x^2-y^2)^4 is at the corner
+    T max = c * c * c * c;
+    auto scale = 1 / max;
+    res *= scale;
 
-    auto res = n0 + n1 + n2;
-    return { x, y,  res * max };
-#else
-    T res = t0 + t1 + t2;
-
-    // (x, y) is in the middle of the triangle
-    T r = 1 / std::sqrt(3);
-    std::array<T, 3> t_max =
-    {
-        c - r * r,
-        c - r * r,
-        c - r * r,
-    };
-
-    // (x, y) is at the corner of left bottom
-    T x_top = 0.5f;
-    T y_top = std::sqrt(3) * 0.5;
-    std::array<T, 3> t_min =
-    {
-        c - 0 - 0,
-        0, //c - 1 - 0,
-        0, //c - x_top * x_top - y_top * y_top,
-    };
-
-    // normalize the value in [0, 1] by (v-min)/(max-min)
-    T max = std::accumulate(t_max.begin(), t_max.end(), static_cast<T>(0));
-    //T min = std::accumulate(t_min.begin(), t_min.end(), static_cast<T>(0));
-    T min = 0.725656;
-
-    return { x, y, (res - min ) / (max - min)};
-    //return { x, y, res };
-#endif
+    return { x, y, res };
 }
 
 template<class T>
@@ -219,55 +186,20 @@ std::tuple<T, T, T> SimplexInterpolate(T x, T y, bool& isInTrianle)
     T t1 = c - x1 * x1 - y1 * y1;
     T t2 = c - x2 * x2 - y2 * y2;
 
-#if 0
-    T n0 = /*(t0 < 0) ? 0 :*/ (t0 * t0 * t0 * t0);
-    T n1 = /*(t1 < 0) ? 0 :*/ (t1 * t1 * t1 * t1);
-    T n2 = /*(t2 < 0) ? 0 :*/ (t2 * t2 * t2 * t2);
-
-    T r = std::sqrt(2) / 3;
-    T max = (c - r * r);
-    max = max * max * max * max;
-    //max = 1 / (3 * max);
-
-    if (n0 + n1 + n2 > 3 * max)
-        std::cout << "Unexpected" << std::endl;
-
-    auto res = n0 + n1 + n2;
-    return { x, y,  res};
-#else
-    t0 = (t0 < 0) ? 0 : t0;
-    t1 = (t1 < 0) ? 0 : t1;
-    t2 = (t2 < 0) ? 0 : t2;
+    // clamp the influence in the range of the circle
+    t0 = (t0 < 0) ? 0 : (t0 * t0 * t0 * t0);
+    t1 = (t1 < 0) ? 0 : (t1 * t1 * t1 * t1);
+    t2 = (t2 < 0) ? 0 : (t2 * t2 * t2 * t2);
 
     auto res = t0 + t1 + t2;
 
-    // (x, y) is in the middle of the triangle
-    T r = std::sqrt(2) / 3;
-    std::array<T, 3> t_max =
-    {
-        c - r * r,
-        c - r * r,
-        c - r * r,
-    };
+    // normalize the value in [-1, 1]
+    // max value in t(x, y) = (c-x^2-y^2)^4 is at the corner
+    T max = c * c * c * c;
+    auto scale = 1 / max;
+    res *= scale;
 
-    // (x, y) is at the corner of left bottom
-    T x1_top = 1 - G2;
-    T y1_top = -G2;
-    T x2_top = 1 - 2 * G2;
-    T y2_top = 1 - 2 * G2;
-    std::array<T, 3> t_min =
-    {
-        c - 0 - 0,
-        c - x1_top * x1_top - y1_top * y1_top,
-        c - x2_top * x2_top - y2_top * y2_top,
-    };
-
-    // normalize the value in [0, 1] by (v-min)/(max-min)
-    T max = std::accumulate(t_max.begin(), t_max.end(), static_cast<T>(0));
-    T min = std::accumulate(t_min.begin(), t_min.end(), static_cast<T>(0));
-
-    return { x, y,  (res - min) / (max - min) };
-#endif
+    return { x, y,  res};
 }
 
 TEST_SUITE("Util")
